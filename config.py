@@ -82,6 +82,20 @@ ERROR_PATTERNS = [
 ]
 
 # ---------------------------------------------------------------
+# Report groups. Each entry: (group name, list of statuses)
+# The order here is the order in the report.
+# ---------------------------------------------------------------
+REPORT_GROUPS = [
+    ("converged", [STATUS_CONVERGED]),
+    ("not_converged", [STATUS_SCF_NOT_CONVERGED,
+                       STATUS_IONIC_NOT_CONVERGED]),
+    ("failed", [STATUS_CRASHED, STATUS_INCOMPLETE]),
+    ("other", [STATUS_RUNNING, STATUS_NOT_SUBMITTED,
+               STATUS_MISSING_INPUTS]),
+]
+
+
+# ---------------------------------------------------------------
 # Status labels used in reports and progress.txt
 # ---------------------------------------------------------------
 STATUS_RUNNING = "running or pending"
@@ -90,3 +104,11 @@ STATUS_CRASHED = "crashed"
 STATUS_INCOMPLETE = "incomplete"
 STATUS_SCF_NOT_CONVERGED = "SCF not converged"
 STATUS_CONVERGED = "converged"
+
+
+# ---------------------------------------------------------------
+# Report folder naming
+# ---------------------------------------------------------------
+# Month names used in report folder names
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "June",
+               "July", "Aug", "Sept", "Oct", "Nov", "Dec"]
