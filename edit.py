@@ -22,6 +22,26 @@ def all_statuses():
     return statuses
 
 
+# Return every group name, for example converged or not_converged.
+def all_group_names():
+    names = []
+    for group_name, group_statuses in config.REPORT_GROUPS:
+        names.append(group_name)
+    return names
+
+
+# Return True if every --where condition matches the folder INCAR.
+# Case is ignored. A tag missing from INCAR counts as no match.
+def matches_where(calc_dir, wheres):
+    for key, value in wheres:
+        actual = parse.get_incar_value(calc_dir, key)
+        if actual is None:
+            return False
+        if actual.lower() != value.lower():
+            return False
+    return True
+
+
 # Read folder paths from a text file, one per line.
 # Empty lines and lines starting with # are ignored.
 def read_dir_list(list_path):
@@ -34,17 +54,25 @@ def read_dir_list(list_path):
     return dirs
 
 
-# Return the folders to edit, chosen by status or by a list file.
-def select_dirs(status, root, list_path):
+# Return the folders to edit, chosen by status, group, or list file.
+def select_dirs(status, group, root, list_path):
     selected = []
 
-    if status is not None:
-        for record in classify.classify_all(root):
-            if record["status"] == status:
-                selected.append(record["path"])
-
     if list_path is not None:
-        selected = read_dir_list(list_path)
+        return read_dir_list(list_path)
+
+    # Find which statuses to accept
+    wanted = []
+    if status is not None:
+        wanted.append(status)
+    if group is not None:
+        for group_name, group_statuses in config.REPORT_GROUPS:
+            if group_name == group:
+                wanted = group_statuses
+
+    for record in classify.classify_all(root):
+        if record["status"] in wanted:
+            selected.append(record["path"])
 
     return selected
 
@@ -203,10 +231,15 @@ def read_arguments():
 
     parser.add_argument("--status",
                         help="edit folders with this status")
+    parser.add_argument("--group",
+                        help="edit folders in this report group")
     parser.add_argument("--root",
-                        help="calculation root, needed with --status")
+                        help="calculation root, needed with --status"
+                             " or --group")
     parser.add_argument("--list",
                         help="text file with one folder path per line")
+    parser.add_argument("--where", action="append", default=[],
+                        help="TAG=VALUE, edit only folders that match")
     parser.add_argument("--set", action="append", default=[],
                         help="TAG=VALUE, can be used many times")
     parser.add_argument("--remove", action="append", default=[],
@@ -218,19 +251,32 @@ def read_arguments():
     args = parser.parse_args()
 
     # Exactly one way of choosing folders
-    if args.status is None and args.list is None:
-        print("Error: give --status or --list.")
+    choices = 0
+    if args.status is not None:
+        choices = choices + 1
+    if args.group is not None:
+        choices = choices + 1
+    if args.list is not None:
+        choices = choices + 1
+
+    if choices != 1:
+        print("Error: give exactly one of --status, --group, or --list.")
         sys.exit(1)
-    if args.status is not None and args.list is not None:
-        print("Error: give only one of --status or --list.")
+
+    if args.list is None and args.root is None:
+        print("Error: --status and --group need --root.")
         sys.exit(1)
-    if args.status is not None and args.root is None:
-        print("Error: --status needs --root.")
-        sys.exit(1)
+
     if args.status is not None and args.status not in all_statuses():
         print("Error: unknown status. Use one of:")
         for status in all_statuses():
             print("  " + status)
+        sys.exit(1)
+
+    if args.group is not None and args.group not in all_group_names():
+        print("Error: unknown group. Use one of:")
+        for name in all_group_names():
+            print("  " + name)
         sys.exit(1)
 
     # At least one change
@@ -246,6 +292,7 @@ if __name__ == "__main__":
     args = read_arguments()
 
     sets = parse_set_items(args.set)
+    wheres = parse_set_items(args.where)
 
     removes = []
     for key in args.remove:
@@ -275,7 +322,7 @@ if __name__ == "__main__":
                 sys.exit(1)
         new_mesh = " ".join(args.kpoints[1:])
 
-    dirs = select_dirs(args.status, args.root, args.list)
+    dirs = select_dirs(args.status, args.group, args.root, args.list)
     if len(dirs) == 0:
         print("No folders selected.")
         sys.exit(0)
@@ -292,6 +339,9 @@ if __name__ == "__main__":
             continue
         if os.path.realpath(calc_dir) in queued_dirs:
             print("Running, skipped: " + calc_dir)
+            continue
+        if not matches_where(calc_dir, wheres):
+            print("Condition not met, skipped: " + calc_dir)
             continue
 
         old_lines = parse.read_lines(incar_path)
