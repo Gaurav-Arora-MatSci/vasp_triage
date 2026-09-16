@@ -1,29 +1,28 @@
 # config.py
 # Settings shared by all modules.
 # Change values here, not inside the other files.
+# Python reads this file from top to bottom, so every name must be
+# defined above the line that uses it.
 
 # ---------------------------------------------------------------
 # File names inside each calculation directory
 # ---------------------------------------------------------------
 INCAR_NAME = "INCAR"
 KPOINTS_NAME = "KPOINTS"
+POSCAR_NAME = "POSCAR"
+POTCAR_NAME = "POTCAR"
 OUTCAR_NAME = "OUTCAR"
 OSZICAR_NAME = "OSZICAR"
 JOB_SCRIPT_NAME = "submit_vasp.sh"
 PROGRESS_NAME = "progress.txt"
 
-# Files a directory needs before it can be submitted
-POSCAR_NAME = "POSCAR"
-POTCAR_NAME = "POTCAR"
-REQUIRED_INPUT_FILES = [INCAR_NAME, KPOINTS_NAME, POSCAR_NAME,
-                        POTCAR_NAME, JOB_SCRIPT_NAME]
-
-# Status for directories that lack one or more required files
-STATUS_MISSING_INPUTS = "missing inputs"
-
 # Scheduler output files look like slurm-4812345.out
 SLURM_PREFIX = "slurm-"
 SLURM_SUFFIX = ".out"
+
+# Files a directory needs before it can be submitted
+REQUIRED_INPUT_FILES = [INCAR_NAME, KPOINTS_NAME, POSCAR_NAME,
+                        POTCAR_NAME, JOB_SCRIPT_NAME]
 
 # Files copied to name-N before a new run is submitted
 ARCHIVE_FILES = [INCAR_NAME, KPOINTS_NAME, OUTCAR_NAME, OSZICAR_NAME]
@@ -45,6 +44,10 @@ DEFAULT_NELM = 60
 # Text written near the end of OUTCAR after a clean finish
 NORMAL_END_TEXT = "General timing and accounting informations"
 
+# Text printed when an ionic relaxation meets EDIFFG
+# Not printed for static runs (NSW = 0)
+RELAX_DONE_TEXT = "reached required accuracy"
+
 # Text on the OUTCAR line that holds the final energy
 ENERGY_TEXT = "energy(sigma->0)"
 
@@ -54,13 +57,8 @@ SCF_LINE_STARTS = ["DAV:", "RMM:", "CG :"]
 # INCAR tags written to progress.txt and report.csv
 KEY_INCAR_TAGS = ["ENCUT", "EDIFF", "EDIFFG", "NELM"]
 
-# Text printed when an ionic relaxation meets EDIFFG
-# Not printed for static runs (NSW = 0)
-RELAX_DONE_TEXT = "reached required accuracy"
-
-STATUS_IONIC_NOT_CONVERGED = "ionic not converged"
 # ---------------------------------------------------------------
-# Error patterns searched in the latest slurm file
+# Error patterns searched in the slurm file and OUTCAR
 # Each entry: (text to search for, short label for the report)
 # Order matters: the first match wins.
 # ---------------------------------------------------------------
@@ -82,8 +80,21 @@ ERROR_PATTERNS = [
 ]
 
 # ---------------------------------------------------------------
+# Status labels used in reports and progress.txt
+# ---------------------------------------------------------------
+STATUS_RUNNING = "running or pending"
+STATUS_NOT_SUBMITTED = "not submitted"
+STATUS_MISSING_INPUTS = "missing inputs"
+STATUS_CRASHED = "crashed"
+STATUS_INCOMPLETE = "incomplete"
+STATUS_SCF_NOT_CONVERGED = "SCF not converged"
+STATUS_IONIC_NOT_CONVERGED = "ionic not converged"
+STATUS_CONVERGED = "converged"
+
+# ---------------------------------------------------------------
 # Report groups. Each entry: (group name, list of statuses)
 # The order here is the order in the report.
+# Must stay below the status labels.
 # ---------------------------------------------------------------
 REPORT_GROUPS = [
     ("converged", [STATUS_CONVERGED]),
@@ -93,18 +104,6 @@ REPORT_GROUPS = [
     ("other", [STATUS_RUNNING, STATUS_NOT_SUBMITTED,
                STATUS_MISSING_INPUTS]),
 ]
-
-
-# ---------------------------------------------------------------
-# Status labels used in reports and progress.txt
-# ---------------------------------------------------------------
-STATUS_RUNNING = "running or pending"
-STATUS_NOT_SUBMITTED = "not submitted"
-STATUS_CRASHED = "crashed"
-STATUS_INCOMPLETE = "incomplete"
-STATUS_SCF_NOT_CONVERGED = "SCF not converged"
-STATUS_CONVERGED = "converged"
-
 
 # ---------------------------------------------------------------
 # Report folder naming
