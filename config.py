@@ -58,6 +58,7 @@ KEY_INCAR_TAGS = ["ENCUT", "EDIFF", "EDIFFG", "NELM"]
 # Not printed for static runs (NSW = 0)
 RELAX_DONE_TEXT = "reached required accuracy"
 
+STATUS_IONIC_NOT_CONVERGED = "ionic not converged"
 # ---------------------------------------------------------------
 # Error patterns searched in the latest slurm file
 # Each entry: (text to search for, short label for the report)
