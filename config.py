@@ -13,6 +13,7 @@ POSCAR_NAME = "POSCAR"
 POTCAR_NAME = "POTCAR"
 OUTCAR_NAME = "OUTCAR"
 OSZICAR_NAME = "OSZICAR"
+CONTCAR_NAME = "CONTCAR"
 JOB_SCRIPT_NAME = "submit_vasp.sh"
 PROGRESS_NAME = "progress.txt"
 
@@ -25,7 +26,7 @@ REQUIRED_INPUT_FILES = [INCAR_NAME, KPOINTS_NAME, POSCAR_NAME,
                         POTCAR_NAME, JOB_SCRIPT_NAME]
 
 # Files copied to name-N before a new run is submitted
-ARCHIVE_FILES = [INCAR_NAME, KPOINTS_NAME, OUTCAR_NAME, OSZICAR_NAME]
+ARCHIVE_FILES = [INCAR_NAME, KPOINTS_NAME, POSCAR_NAME, CONTCAR_NAME, OUTCAR_NAME, OSZICAR_NAME]
 # The latest slurm file is archived too. history.py finds it by name.
 
 # ---------------------------------------------------------------
