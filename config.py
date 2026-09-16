@@ -113,3 +113,9 @@ REPORT_GROUPS = [
 # Month names used in report folder names
 MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "June",
                "July", "Aug", "Sept", "Oct", "Nov", "Dec"]
+
+# ---------------------------------------------------------------
+# Resubmission
+# ---------------------------------------------------------------
+# Largest number of jobs submitted in one run of resubmit.py
+MAX_SUBMIT = 3
