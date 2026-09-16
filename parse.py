@@ -228,6 +228,25 @@ def find_error(slurm_path):
 
     return None
 
+# Search one file for known error text.
+# Return (label, matching line), or (None, None) if nothing is found.
+def find_error_details(file_path):
+    if file_path is None:
+        return None, None
+
+    text = read_tail(file_path, config.TAIL_BYTES)
+
+    for pattern, label in config.ERROR_PATTERNS:
+        if pattern not in text:
+            continue
+
+        # Find the full line that holds the pattern.
+        for line in text.splitlines():
+            if pattern in line:
+                return label, line.strip()
+
+    return None, None
+
 
 # Run this file directly to test all functions on one directory.
 # Example: python3 parse.py /path/to/one/calculation
