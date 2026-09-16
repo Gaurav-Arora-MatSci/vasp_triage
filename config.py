@@ -8,6 +8,7 @@
 # File names inside each calculation directory
 # ---------------------------------------------------------------
 INCAR_NAME = "INCAR"
+WAVECAR_NAME = "WAVECAR"
 KPOINTS_NAME = "KPOINTS"
 POSCAR_NAME = "POSCAR"
 POTCAR_NAME = "POTCAR"
