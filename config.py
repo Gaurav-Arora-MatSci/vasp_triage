@@ -69,7 +69,7 @@ ERROR_PATTERNS = [
     ("oom-kill", "out of memory"),
     ("Out Of Memory", "out of memory"),
     ("CANCELLED", "cancelled"),
-    ("ZBRENT", "zbrent"),
+    ("ZBRENT: fatal error", "zbrent"),
     ("ZHEGV", "zhegv"),
     ("ZPOTRF", "zpotrf"),
     ("Sub-Space-Matrix is not hermitian", "subspace hermitian"),
@@ -119,3 +119,9 @@ MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "June",
 # ---------------------------------------------------------------
 # Largest number of jobs submitted in one run of resubmit.py
 MAX_SUBMIT = 3
+
+# ---------------------------------------------------------------
+# Relaxation restart
+# ---------------------------------------------------------------
+# Error labels where CONTCAR is still safe to reuse
+CONTCAR_RESTART_LABELS = ["walltime", "zbrent"]
