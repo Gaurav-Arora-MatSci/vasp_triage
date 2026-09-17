@@ -127,3 +127,12 @@ MAX_SUBMIT = 3
 # Error labels where CONTCAR is still safe to reuse
 CONTCAR_RESTART_LABELS = ["walltime", "zbrent"]
 DEFAULT_EDIFF = 1E-4
+
+# ---------------------------------------------------------------
+# ZBRENT near minimum check
+# ---------------------------------------------------------------
+# Error label that triggers the force and energy check
+ZBRENT_LABEL = "zbrent"
+
+# Text in OUTCAR above each force block
+FORCE_BLOCK_TEXT = "TOTAL-FORCE (eV/Angst)"
