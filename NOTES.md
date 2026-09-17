@@ -30,3 +30,11 @@ error patterns and stress limit tuned from real runs.
 ## Clusters
 Augie: AI APIs blocked. Stampede3: API reachable, AI tools on compute
 nodes only per TACC policy.
+
+## Clusters
+Stampede3: main cluster. API reachable on login and compute nodes.
+TACC policy: AI tools on compute nodes only, start with idev.
+Plain scripts are not AI tools, so the login node is fine for a small tree.
+Augie: AI APIs blocked. Pilot tested here.
+NERSC Perlmutter: API reachable. Agents allowed from login nodes, but
+no find or recursive searches on large trees.
