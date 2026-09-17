@@ -50,7 +50,7 @@ def read_dir_list(list_path):
         line = line.strip()
         if line == "" or line.startswith("#"):
             continue
-        dirs.append(line)
+        dirs.append(os.path.abspath(line))
     return dirs
 
 

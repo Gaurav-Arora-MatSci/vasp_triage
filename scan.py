@@ -11,6 +11,7 @@ import config
 # Walk through root and all its subdirectories.
 # Return a sorted list of paths to directories that contain an INCAR.
 def find_calc_dirs(root):
+    root = os.path.abspath(root)
     calc_dirs = []
 
     # os.walk visits every directory below root, one at a time.
