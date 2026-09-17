@@ -190,6 +190,14 @@ if __name__ == "__main__":
             print("Warning: last SCF hit NELM. Fix NELM or ALGO"
                   " first: " + calc_dir)
 
+        if record["status"] == config.STATUS_CRASHED:
+            old_label = history.previous_crash_label(calc_dir,
+                                             record["job_id"])
+            if old_label is not None and old_label == record["message_label"]:
+                print("Warning: same error as previous run ("
+                 + old_label + "). Change settings first: "
+                 + calc_dir)
+
         restart = False
         if needs_contcar_restart(calc_dir, record):
             safe, reason = check_contcar(calc_dir)
