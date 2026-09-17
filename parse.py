@@ -243,7 +243,7 @@ def find_error_details(file_path):
         # Find the full line that holds the pattern.
         for line in text.splitlines():
             if pattern in line:
-                return label, line.strip()
+                return label, line.strip().strip("|").strip()
 
     return None, None
 
