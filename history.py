@@ -61,6 +61,59 @@ def last_recorded_job_id(calc_dir):
 
     return job_id
 
+# Read all Run blocks from progress.txt.
+# Return a list of dictionaries with job_id, result, and label.
+def read_progress_blocks(calc_dir):
+    progress_path = os.path.join(calc_dir, config.PROGRESS_NAME)
+    blocks = []
+    current = None
+
+    for line in parse.read_lines(progress_path):
+        text = line.strip()
+
+        # A Run line starts a new block
+        if text.startswith("Run "):
+            current = {"job_id": None, "result": None, "label": None}
+            blocks.append(current)
+            parts = text.split("|")
+            if len(parts) >= 3:
+                value = parts[2].replace("Job", "").strip()
+                if value.isdigit():
+                    current["job_id"] = value
+            continue
+
+        if current is None:
+            continue
+
+        if text.startswith("Result:"):
+            current["result"] = text[len("Result:"):].strip()
+        elif text.startswith("Message:"):
+            message = text[len("Message:"):].strip()
+            if message != "none":
+                # Label is the text before " (file): line"
+                current["label"] = message.split(" (")[0].strip()
+
+    return blocks
+
+
+# Return the error label of the previous crashed run, or None.
+# The current run is ignored, even if it was already archived.
+def previous_crash_label(calc_dir, current_job_id):
+    earlier = []
+    for block in read_progress_blocks(calc_dir):
+        if current_job_id is not None and block["job_id"] == current_job_id:
+            continue
+        earlier.append(block)
+
+    if len(earlier) == 0:
+        return None
+
+    last = earlier[-1]
+    if last["result"] != config.STATUS_CRASHED:
+        return None
+
+    return last["label"]
+
 
 # Decide whether the current run was already saved.
 # Return True if it was saved, False if it is new.
