@@ -76,7 +76,6 @@ ERROR_PATTERNS = [
     ("VERY BAD NEWS", "very bad news"),
     ("internal error in subroutine", "internal error"),
     ("Inconsistent Bravais lattice", "bravais lattice"),
-    ("PRICEL", "pricel"),
     ("RSPHER", "rspher"),
     ("BRIONS problems", "brions"),
 ]
