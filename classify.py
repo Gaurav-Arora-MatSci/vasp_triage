@@ -158,9 +158,13 @@ def classify(calc_dir, queued_dirs):
     record["message_file"] = file_name
     record["message_line"] = line
 
+    # Read NELM and NSW once. Used by the steps below.
+    nelm = to_int(record["NELM"], config.DEFAULT_NELM)
+    nsw = to_int(parse.get_incar_value(calc_dir, "NSW"), 0)
+
     # Note if the last electronic loop hit NELM without converging.
-    
-    if not scf_converged(calc_dir, oszicar_path, nelm):
+    scf_ok = scf_converged(calc_dir, oszicar_path, nelm)
+    if not scf_ok:
         record["scf_at_nelm"] = True
 
     # Step 3: VASP did not finish normally
@@ -174,10 +178,7 @@ def classify(calc_dir, queued_dirs):
     # Step 4: VASP finished normally. Check convergence.
     record["energy"] = parse.get_final_energy(outcar_path)
 
-    nelm = to_int(record["NELM"], config.DEFAULT_NELM)
-    nsw = to_int(parse.get_incar_value(calc_dir, "NSW"), 0)
-
-    if not scf_converged(calc_dir, oszicar_path, nelm):
+    if not scf_ok:
         record["status"] = config.STATUS_SCF_NOT_CONVERGED
     elif nsw > 0 and not relax_done_in_files(slurm_path, outcar_path):
         record["status"] = config.STATUS_IONIC_NOT_CONVERGED
@@ -221,7 +222,10 @@ if __name__ == "__main__":
 
     print("")
     for record in records:
-        print(record["status"] + " | " + record["path"])
+        text = record["status"] + " | " + record["path"]
+        if record["scf_at_nelm"]:
+            text = text + " [SCF at NELM]"
+        print(text)
         if record["message_label"] is not None:
             print("    " + record["message_file"] + ": "
                   + record["message_line"])
