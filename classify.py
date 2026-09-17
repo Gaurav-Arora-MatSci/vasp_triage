@@ -132,6 +132,7 @@ def classify(calc_dir, queued_dirs):
     record["message_label"] = None
     record["message_file"] = None
     record["message_line"] = None
+    record["scf_at_nelm"] = False
 
     # Store the key INCAR tags, for example record["ENCUT"] = "350"
     for tag in config.KEY_INCAR_TAGS:
@@ -156,6 +157,11 @@ def classify(calc_dir, queued_dirs):
     record["message_label"] = label
     record["message_file"] = file_name
     record["message_line"] = line
+
+    # Note if the last electronic loop hit NELM without converging.
+    
+    if not scf_converged(calc_dir, oszicar_path, nelm):
+        record["scf_at_nelm"] = True
 
     # Step 3: VASP did not finish normally
     if not parse.has_normal_end(outcar_path):
