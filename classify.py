@@ -53,6 +53,35 @@ def to_int(value, default):
         return default
 
 
+# Convert INCAR text such as "1E-05" to a number.
+# Return default if the value is missing or not a number.
+def to_float(value, default):
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
+# Decide if the last electronic loop converged.
+# Fewer steps than NELM: converged.
+# Steps equal to NELM: converged only if dE and d eps are below EDIFF.
+def scf_converged(calc_dir, oszicar_path, nelm):
+    steps = parse.count_last_scf_steps(oszicar_path)
+    if steps < nelm:
+        return True
+
+    d_energy, d_eps = parse.get_last_scf_values(oszicar_path)
+    if d_energy is None:
+        return False
+
+    ediff = to_float(parse.get_incar_value(calc_dir, "EDIFF"),
+                     config.DEFAULT_EDIFF)
+
+    return abs(d_energy) < ediff and abs(d_eps) < ediff
+
+
 # Search the slurm file first, then OUTCAR, for error text.
 # Return (label, file name, line), or (None, None, None).
 def find_error_in_files(slurm_path, outcar_path):
@@ -141,13 +170,9 @@ def classify(calc_dir, queued_dirs):
 
     nelm = to_int(record["NELM"], config.DEFAULT_NELM)
     nsw = to_int(parse.get_incar_value(calc_dir, "NSW"), 0)
+
     if not scf_converged(calc_dir, oszicar_path, nelm):
         record["status"] = config.STATUS_SCF_NOT_CONVERGED
-
-    #scf_steps = parse.count_last_scf_steps(oszicar_path)
-
-    #if scf_steps >= nelm:
-    #    record["status"] = config.STATUS_SCF_NOT_CONVERGED
     elif nsw > 0 and not relax_done_in_files(slurm_path, outcar_path):
         record["status"] = config.STATUS_IONIC_NOT_CONVERGED
     else:
