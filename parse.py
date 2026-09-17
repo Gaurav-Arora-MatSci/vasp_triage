@@ -229,20 +229,30 @@ def find_error(slurm_path):
     return None
 
 # Search one file for known error text.
+# A pattern is text, or a list of texts that must all be on one line.
 # Return (label, matching line), or (None, None) if nothing is found.
 def find_error_details(file_path):
     if file_path is None:
         return None, None
 
     text = read_tail(file_path, config.TAIL_BYTES)
+    lines = text.splitlines()
 
     for pattern, label in config.ERROR_PATTERNS:
-        if pattern not in text:
-            continue
+        # Turn plain text into a list with one item
+        if isinstance(pattern, str):
+            needed = [pattern]
+        else:
+            needed = pattern
 
-        # Find the full line that holds the pattern.
-        for line in text.splitlines():
-            if pattern in line:
+        for line in lines:
+            all_found = True
+            for word in needed:
+                if word not in line:
+                    all_found = False
+                    break
+
+            if all_found:
                 return label, line.strip().strip("|").strip()
 
     return None, None

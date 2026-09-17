@@ -65,6 +65,7 @@ KEY_INCAR_TAGS = ["ENCUT", "EDIFF", "EDIFFG", "NELM"]
 # Order matters: the first match wins.
 # ---------------------------------------------------------------
 ERROR_PATTERNS = [
+    (["file not found", "POTCAR"], "POTCAR missing"),
     ("DUE TO TIME LIMIT", "walltime"),
     ("oom-kill", "out of memory"),
     ("Out Of Memory", "out of memory"),
