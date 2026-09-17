@@ -2,9 +2,12 @@
 # Submit selected calculation folders with sbatch.
 # Saves each old run with history.py before submitting.
 # For unfinished relaxations, copies CONTCAR to POSCAR first.
-# Submits at most MAX_SUBMIT jobs per run, unless --max is given.
+# Two limits apply, and the smaller one wins:
+#   --max          new jobs per run (default MAX_SUBMIT)
+#   --queue-limit  my jobs in the queue at once (default QUEUE_LIMIT)
 
 import argparse
+import getpass
 import os
 import shutil
 import subprocess
@@ -33,7 +36,11 @@ def read_arguments():
     parser.add_argument("--list",
                         help="text file with one folder path per line")
     parser.add_argument("--max", type=int, default=config.MAX_SUBMIT,
-                        help="largest number of jobs to submit")
+                        help="largest number of jobs to submit per run")
+    parser.add_argument("--queue-limit", type=int,
+                        default=config.QUEUE_LIMIT,
+                        help="largest number of my jobs in the queue,"
+                             " 0 turns it off")
     parser.add_argument("--force", action="store_true",
                         help="also submit converged folders")
     parser.add_argument("--skip-zbrent-met", action="store_true",
@@ -75,7 +82,36 @@ def read_arguments():
         print("Error: --max must be 1 or more.")
         sys.exit(1)
 
+    if args.queue_limit < 0:
+        print("Error: --queue-limit must be 0 or more.")
+        sys.exit(1)
+
     return args
+
+
+# Count my jobs in the queue, running and pending.
+# Return None if squeue cannot be used.
+def count_queued_jobs():
+    user = getpass.getuser()
+    command = ["squeue", "-u", user, "-h", "-o", "%i"]
+
+    try:
+        result = subprocess.run(command,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True)
+    except FileNotFoundError:
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    count = 0
+    for line in result.stdout.splitlines():
+        if line.strip() != "":
+            count = count + 1
+
+    return count
 
 
 # Decide if this run should restart from CONTCAR.
@@ -158,6 +194,26 @@ def submit_one(calc_dir):
 if __name__ == "__main__":
     args = read_arguments()
 
+    # Work out how many jobs may be submitted in this run.
+    allowed = args.max
+    if args.queue_limit > 0:
+        queued_count = count_queued_jobs()
+        if queued_count is None:
+            print("Error: cannot count queued jobs, squeue failed.")
+            print("Use --queue-limit 0 to submit without this limit.")
+            sys.exit(1)
+
+        free_slots = args.queue_limit - queued_count
+        print("Jobs in queue: " + str(queued_count) + " of limit "
+              + str(args.queue_limit))
+
+        if free_slots <= 0:
+            print("Queue is full. Nothing submitted.")
+            sys.exit(0)
+
+        if free_slots < allowed:
+            allowed = free_slots
+
     dirs = edit.select_dirs(args.status, args.group, args.root, args.list)
     if len(dirs) == 0:
         print("No folders selected.")
@@ -224,8 +280,8 @@ if __name__ == "__main__":
         print("Nothing to submit.")
         sys.exit(0)
 
-    # Step 2: keep only the first --max folders
-    to_submit = ready[:args.max]
+    # Step 2: keep only as many folders as allowed
+    to_submit = ready[:allowed]
     left_over = len(ready) - len(to_submit)
 
     print("")
@@ -236,7 +292,8 @@ if __name__ == "__main__":
         else:
             print("  " + calc_dir)
     if left_over > 0:
-        print("Not submitted now because of --max: " + str(left_over))
+        print("Not submitted now because of the limits: "
+              + str(left_over))
 
     answer = input("Type yes to save each run and submit: ")
     if answer.strip() != "yes":

@@ -121,6 +121,10 @@ MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "June",
 # Largest number of jobs submitted in one run of resubmit.py
 MAX_SUBMIT = 3
 
+# Largest number of my jobs allowed in the queue at once.
+# Set to 0 to turn this limit off.
+QUEUE_LIMIT = 5
+
 # ---------------------------------------------------------------
 # Relaxation restart
 # ---------------------------------------------------------------
