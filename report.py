@@ -16,7 +16,7 @@ import config
 CSV_COLUMNS = ["path", "status", "energy_sigma0_eV", "job_id",
                "ENCUT", "EDIFF", "EDIFFG", "NELM",
                "kpoints_scheme", "kpoints_mesh", "missing_files",
-               "message_label", "message_file", "message_line","scf_at_nelm"]
+               "message_label", "message_file", "message_line","scf_at_nelm","zbrent_note"]
 
 
 # Return the group name for one status, for example "failed".
@@ -63,6 +63,7 @@ def record_to_row(record):
     row.append(to_text(record["message_file"]))
     row.append(to_text(record["message_line"]))
     row.append(str(record["scf_at_nelm"]))
+    row.append(to_text(record["zbrent_note"]))
     return row
 
 
@@ -169,6 +170,9 @@ def write_markdown(records, file_path):
                            + record["message_line"])
             if record["scf_at_nelm"]:
                 message = message + " [SCF at NELM]"
+
+            if record["zbrent_note"] is not None:
+                message = message + " [" + record["zbrent_note"] + "]"
 
             lines.append("| " + md_cell(record["path"])
                          + " | " + md_cell(record["status"])

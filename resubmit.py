@@ -36,6 +36,8 @@ def read_arguments():
                         help="largest number of jobs to submit")
     parser.add_argument("--force", action="store_true",
                         help="also submit converged folders")
+    parser.add_argument("--skip-zbrent-met", action="store_true",
+                        help="skip ZBRENT crashes whose criteria look met")
 
     args = parser.parse_args()
 
@@ -186,17 +188,27 @@ if __name__ == "__main__":
             print("Converged, skipped (use --force): " + calc_dir)
             continue
 
+        # Warning: last electronic loop hit NELM
         if record["scf_at_nelm"]:
             print("Warning: last SCF hit NELM. Fix NELM or ALGO"
                   " first: " + calc_dir)
 
+        # Warning and optional skip: ZBRENT crash near the minimum
+        if record["zbrent_note"] is not None:
+            print("Warning: ZBRENT: fatal error in bracketing, "
+                  + record["zbrent_note"] + ": " + calc_dir)
+            if args.skip_zbrent_met and record["zbrent_met"]:
+                print("ZBRENT criteria met, skipped: " + calc_dir)
+                continue
+
+        # Warning: same crash as the previous run
         if record["status"] == config.STATUS_CRASHED:
             old_label = history.previous_crash_label(calc_dir,
-                                             record["job_id"])
+                                                     record["job_id"])
             if old_label is not None and old_label == record["message_label"]:
                 print("Warning: same error as previous run ("
-                 + old_label + "). Change settings first: "
-                 + calc_dir)
+                      + old_label + "). Change settings first: "
+                      + calc_dir)
 
         restart = False
         if needs_contcar_restart(calc_dir, record):

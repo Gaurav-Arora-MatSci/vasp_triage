@@ -211,6 +211,8 @@ def make_progress_block(run_number, record, copied):
                      + record["message_file"] + "): "
                      + record["message_line"])
 
+    if record["zbrent_note"] is not None:
+        lines.append("  Note: " + record["zbrent_note"])
     lines.append("  Archived as: " + " ".join(copied))
     lines.append("")
 
