@@ -374,6 +374,32 @@ def get_last_ionic_energy_change(oszicar_path):
     return abs(energies[-1] - energies[-2])
 
 
+# Return the largest absolute stress component from the last in kB line.
+# Return None if no stress line is found.
+def get_max_stress(outcar_path):
+    text = read_tail(outcar_path, config.TAIL_BYTES)
+    last_line = None
+
+    for line in text.splitlines():
+        if config.STRESS_TEXT in line:
+            last_line = line
+
+    if last_line is None:
+        return None
+
+    # Words after "in kB": XX YY ZZ XY YZ ZX
+    after = last_line.split(config.STRESS_TEXT)[1].split()
+    largest = None
+    for word in after[:6]:
+        try:
+            value = abs(float(word))
+        except ValueError:
+            continue
+        if largest is None or value > largest:
+            largest = value
+
+    return largest
+
 # Run this file directly to test all functions on one directory.
 # Example: python3 parse.py /path/to/one/calculation
 if __name__ == "__main__":

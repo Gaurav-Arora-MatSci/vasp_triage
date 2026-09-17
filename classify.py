@@ -83,6 +83,7 @@ def scf_converged(calc_dir, oszicar_path, nelm):
 
 
 # After a ZBRENT crash, check if the relaxation criteria look met.
+# Forces or energy are checked always. Stress is checked if ISIF >= 3.
 # Return (met, note text).
 def zbrent_check(calc_dir, outcar_path, oszicar_path):
     ediff = to_float(parse.get_incar_value(calc_dir, "EDIFF"),
@@ -90,10 +91,12 @@ def zbrent_check(calc_dir, outcar_path, oszicar_path):
     # VASP default EDIFFG is 10 times EDIFF
     ediffg = to_float(parse.get_incar_value(calc_dir, "EDIFFG"),
                       ediff * 10)
+    isif = to_int(parse.get_incar_value(calc_dir, "ISIF"), 2)
 
     max_force = parse.get_max_force(outcar_path)
     energy_change = parse.get_last_ionic_energy_change(oszicar_path)
 
+    # Part 1: forces for negative EDIFFG, energy change otherwise
     if ediffg < 0:
         limit = abs(ediffg)
         met = max_force is not None and max_force < limit
@@ -113,13 +116,30 @@ def zbrent_check(calc_dir, outcar_path, oszicar_path):
     else:
         energy_text = "last ionic dE " + "%.2e" % energy_change + " eV"
 
+    parts = [force_text]
+
+    # Part 2: stress, only when the cell is allowed to relax
+    if isif >= 3:
+        max_stress = parse.get_max_stress(outcar_path)
+        stress_limit = config.STRESS_LIMIT_KB
+        if max_stress is None:
+            parts.append("max stress not found")
+            met = False
+        else:
+            parts.append("max stress " + "%.2f" % max_stress + " kB (limit "
+                         + str(stress_limit) + " kB)")
+            if max_stress >= stress_limit:
+                met = False
+
+    parts.append(energy_text)
+    parts.append(rule)
+
     if met:
         verdict = "criteria met, check manually"
     else:
         verdict = "criteria not met"
 
-    note = (force_text + ", " + energy_text + ", " + rule + ": "
-            + verdict)
+    note = ", ".join(parts) + ": " + verdict
     return met, note
 
 

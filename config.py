@@ -133,6 +133,11 @@ DEFAULT_EDIFF = 1E-4
 # ---------------------------------------------------------------
 # Error label that triggers the force and energy check
 ZBRENT_LABEL = "zbrent"
+# Text on the OUTCAR line that holds the stress tensor in kB
+STRESS_TEXT = "in kB"
+
+# Largest stress component accepted as relaxed, in kB
+STRESS_LIMIT_KB = 1.0
 
 # Text in OUTCAR above each force block
 FORCE_BLOCK_TEXT = "TOTAL-FORCE (eV/Angst)"
