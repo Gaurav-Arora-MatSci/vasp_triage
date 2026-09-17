@@ -141,10 +141,13 @@ def classify(calc_dir, queued_dirs):
 
     nelm = to_int(record["NELM"], config.DEFAULT_NELM)
     nsw = to_int(parse.get_incar_value(calc_dir, "NSW"), 0)
-    scf_steps = parse.count_last_scf_steps(oszicar_path)
-
-    if scf_steps >= nelm:
+    if not scf_converged(calc_dir, oszicar_path, nelm):
         record["status"] = config.STATUS_SCF_NOT_CONVERGED
+
+    #scf_steps = parse.count_last_scf_steps(oszicar_path)
+
+    #if scf_steps >= nelm:
+    #    record["status"] = config.STATUS_SCF_NOT_CONVERGED
     elif nsw > 0 and not relax_done_in_files(slurm_path, outcar_path):
         record["status"] = config.STATUS_IONIC_NOT_CONVERGED
     else:
