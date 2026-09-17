@@ -125,3 +125,4 @@ MAX_SUBMIT = 3
 # ---------------------------------------------------------------
 # Error labels where CONTCAR is still safe to reuse
 CONTCAR_RESTART_LABELS = ["walltime", "zbrent"]
+DEFAULT_EDIFF = 1E-4
