@@ -248,6 +248,41 @@ def find_error_details(file_path):
     return None, None
 
 
+# Read the last electronic step line in OSZICAR.
+# Return (dE, d eps) as numbers, or (None, None) if not readable.
+# Example line:
+# DAV:   3    -0.28476E+03   -0.43210E-05   -0.12345E-05  4000 ...
+#              total energy   dE             d eps
+def get_last_scf_values(oszicar_path):
+    last_line = None
+    for line in read_lines(oszicar_path):
+        if is_scf_line(line):
+            last_line = line.strip()
+
+    if last_line is None:
+        return None, None
+
+    # Remove the start text, so "CG :" and "DAV:" are handled the same
+    for start in config.SCF_LINE_STARTS:
+        if last_line.startswith(start):
+            last_line = last_line[len(start):]
+            break
+
+    # Remaining words: step number, total energy, dE, d eps, ...
+    words = last_line.split()
+    if len(words) < 4:
+        return None, None
+
+    try:
+        d_energy = float(words[2])
+        d_eps = float(words[3])
+    except ValueError:
+        # VASP prints stars when a number is too large to fit
+        return None, None
+
+    return d_energy, d_eps
+
+
 # Run this file directly to test all functions on one directory.
 # Example: python3 parse.py /path/to/one/calculation
 if __name__ == "__main__":
