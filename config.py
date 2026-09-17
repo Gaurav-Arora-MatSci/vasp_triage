@@ -57,7 +57,8 @@ ENERGY_TEXT = "energy(sigma->0)"
 SCF_LINE_STARTS = ["DAV:", "RMM:", "CG :"]
 
 # INCAR tags written to progress.txt and report.csv
-KEY_INCAR_TAGS = ["ENCUT", "EDIFF", "EDIFFG", "NELM"]
+KEY_INCAR_TAGS = ["ENCUT", "EDIFF", "EDIFFG", "NELM", "NSW", "ISIF",
+                  "IBRION", "ALGO"]
 
 # ---------------------------------------------------------------
 # Error patterns searched in the slurm file and OUTCAR
