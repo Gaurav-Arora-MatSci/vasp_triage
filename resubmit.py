@@ -1,10 +1,12 @@
 # resubmit.py
 # Submit selected calculation folders with sbatch.
 # Saves each old run with history.py before submitting.
+# For unfinished relaxations, copies CONTCAR to POSCAR first.
 # Submits at most MAX_SUBMIT jobs per run, unless --max is given.
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 
@@ -12,6 +14,7 @@ import classify
 import config
 import edit
 import history
+import parse
 import scan
 
 
@@ -71,6 +74,54 @@ def read_arguments():
         sys.exit(1)
 
     return args
+
+
+# Decide if this run should restart from CONTCAR.
+# Return True only for unfinished relaxations.
+def needs_contcar_restart(calc_dir, record):
+    nsw = classify.to_int(parse.get_incar_value(calc_dir, "NSW"), 0)
+    if nsw <= 0:
+        return False
+
+    if record["status"] == config.STATUS_IONIC_NOT_CONVERGED:
+        return True
+
+    if record["status"] == config.STATUS_CRASHED:
+        if record["message_label"] in config.CONTCAR_RESTART_LABELS:
+            return True
+
+    return False
+
+
+# Check that CONTCAR can replace POSCAR.
+# Return (True, "") if safe, or (False, reason) if not.
+def check_contcar(calc_dir):
+    contcar = os.path.join(calc_dir, config.CONTCAR_NAME)
+    poscar = os.path.join(calc_dir, config.POSCAR_NAME)
+
+    contcar_lines = parse.read_lines(contcar)
+    poscar_lines = parse.read_lines(poscar)
+
+    if len(contcar_lines) < 8:
+        return False, "CONTCAR missing or empty"
+    if len(poscar_lines) < 8:
+        return False, "POSCAR missing or empty"
+
+    # Lines 6 and 7 hold element names and atom counts.
+    for index in [5, 6]:
+        if contcar_lines[index].split() != poscar_lines[index].split():
+            return False, "CONTCAR atoms differ from POSCAR"
+
+    return True, ""
+
+
+# Copy CONTCAR to POSCAR and note it in progress.txt.
+def copy_contcar_to_poscar(calc_dir):
+    contcar = os.path.join(calc_dir, config.CONTCAR_NAME)
+    poscar = os.path.join(calc_dir, config.POSCAR_NAME)
+    shutil.copy2(contcar, poscar)
+    history.append_progress(calc_dir,
+                            "  Next run starts from CONTCAR\n\n")
 
 
 # Run sbatch inside one folder.
@@ -135,7 +186,19 @@ if __name__ == "__main__":
             print("Converged, skipped (use --force): " + calc_dir)
             continue
 
-        ready.append(calc_dir)
+        if record["scf_at_nelm"]:
+            print("Warning: last SCF hit NELM. Fix NELM or ALGO"
+                  " first: " + calc_dir)
+
+        restart = False
+        if needs_contcar_restart(calc_dir, record):
+            safe, reason = check_contcar(calc_dir)
+            if not safe:
+                print(reason + ", skipped: " + calc_dir)
+                continue
+            restart = True
+
+        ready.append((calc_dir, restart))
 
     if len(ready) == 0:
         print("Nothing to submit.")
@@ -147,8 +210,11 @@ if __name__ == "__main__":
 
     print("")
     print("Folders to submit: " + str(len(to_submit)))
-    for calc_dir in to_submit:
-        print("  " + calc_dir)
+    for calc_dir, restart in to_submit:
+        if restart:
+            print("  " + calc_dir + "  (CONTCAR to POSCAR)")
+        else:
+            print("  " + calc_dir)
     if left_over > 0:
         print("Not submitted now because of --max: " + str(left_over))
 
@@ -157,10 +223,14 @@ if __name__ == "__main__":
         print("Cancelled. Nothing submitted.")
         sys.exit(0)
 
-    # Step 3: save the old run, then submit
+    # Step 3: save the old run, copy CONTCAR if needed, then submit
     submitted = 0
-    for calc_dir in to_submit:
+    for calc_dir, restart in to_submit:
         history.archive_one(calc_dir, queued_dirs)
+
+        if restart:
+            copy_contcar_to_poscar(calc_dir)
+            print("CONTCAR copied to POSCAR: " + calc_dir)
 
         job_id = submit_one(calc_dir)
         if job_id is not None:
