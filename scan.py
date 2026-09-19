@@ -7,11 +7,48 @@ import sys
 
 import config
 
+# Name of the file that holds short names for long folder paths.
+# It sits in the same folder as the scripts.
+ALIAS_FILE = "working_dirs_list.txt"
+
+
+# Read working_dirs_list.txt and return a dictionary of names to paths.
+# Return an empty dictionary if the file does not exist.
+def read_aliases():
+    code_dir = os.path.dirname(os.path.abspath(__file__))
+    alias_path = os.path.join(code_dir, ALIAS_FILE)
+
+    aliases = {}
+    if not os.path.isfile(alias_path):
+        return aliases
+
+    with open(alias_path, "r", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            if line == "" or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+
+            name, path = line.split("=", 1)
+            aliases[name.strip()] = path.strip()
+
+    return aliases
+
+
+# Turn a short name into its full path.
+# A path that is not a known name is returned unchanged.
+def resolve_path(text):
+    aliases = read_aliases()
+    if text in aliases:
+        return aliases[text]
+    return text
+
 
 # Walk through root and all its subdirectories.
 # Return a sorted list of paths to directories that contain an INCAR.
 def find_calc_dirs(root):
-    root = os.path.abspath(root)
+    root = os.path.abspath(resolve_path(root))
     calc_dirs = []
 
     # os.walk visits every directory below root, one at a time.
