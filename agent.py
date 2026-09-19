@@ -18,6 +18,7 @@ import subprocess
 import sys
 
 import classify
+import scan
 import config
 
 
@@ -144,6 +145,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         root = rest[0]
+        root = scan.resolve_path(root)
         if not os.path.isdir(root):
             print("Error: not a directory: " + root)
             sys.exit(1)
