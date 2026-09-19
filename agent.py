@@ -20,7 +20,22 @@ import sys
 import classify
 import config
 import scan
+import datetime
 
+# Name of the command log, kept in the same folder as the scripts.
+LOG_FILE = "agent_log.txt"
+
+
+# Add one line to the command log.
+def write_log(command_text, result_text):
+    code_dir = os.path.dirname(os.path.abspath(__file__))
+    log_path = os.path.join(code_dir, LOG_FILE)
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    line = now + " | " + command_text + " | " + result_text + "\n"
+
+    with open(log_path, "a") as f:
+        f.write(line)
 
 # Ask SLURM for the state of each of my jobs.
 # Return a dictionary such as {"RUNNING": 3, "PENDING": 12}.
@@ -130,7 +145,6 @@ def print_usage():
     print("Options for edit and submit are the same as edit.py"
           " and resubmit.py.")
 
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print_usage()
@@ -138,6 +152,9 @@ if __name__ == "__main__":
 
     command = sys.argv[1]
     rest = sys.argv[2:]
+
+    # The command as typed, for the log
+    command_text = " ".join(sys.argv[1:])
 
     if command == "status":
         if len(rest) != 1:
@@ -151,18 +168,22 @@ if __name__ == "__main__":
 
         print_queue_summary()
         print_folder_summary(root)
+        write_log(command_text, "checked")
 
-    elif command == "report":
-        sys.exit(run_script("report.py", rest))
+    elif command in ["report", "history", "edit", "submit"]:
+        script_names = {"report": "report.py",
+                        "history": "history.py",
+                        "edit": "edit.py",
+                        "submit": "resubmit.py"}
 
-    elif command == "history":
-        sys.exit(run_script("history.py", rest))
+        code = run_script(script_names[command], rest)
 
-    elif command == "edit":
-        sys.exit(run_script("edit.py", rest))
+        if code == 0:
+            write_log(command_text, "finished")
+        else:
+            write_log(command_text, "failed, exit code " + str(code))
 
-    elif command == "submit":
-        sys.exit(run_script("resubmit.py", rest))
+        sys.exit(code)
 
     else:
         print("Unknown command: " + command)
