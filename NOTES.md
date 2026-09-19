@@ -11,8 +11,8 @@ report.py    grouped CSV files and report.md in dated folders
 history.py   archive runs as name-N, write progress.txt
 edit.py      change INCAR and KPOINTS, filters by status, group, list, where
 resubmit.py  sbatch with CONTCAR restart, warnings, max and queue limits
-
-## Status order
+agent.py     one entry point: status, report, history, edit, submit
+## Status orderi
 running, missing inputs or not submitted, crashed or incomplete,
 SCF not converged, ionic not converged, converged
 
@@ -22,7 +22,7 @@ Slurm output: slurm-%j.out, no separate error file.
 CONTCAR restart for ionic not converged, walltime, zbrent.
 ZBRENT note checks forces, energy change, and stress for ISIF >= 3.
 MAX_SUBMIT per run, QUEUE_LIMIT total in queue.
-
+Short names for long paths come from working_dirs_list.txt.
 ## Not done
 agent.py, README.md, LLM layer on Stampede3 inside idev,
 error patterns and stress limit tuned from real runs.
