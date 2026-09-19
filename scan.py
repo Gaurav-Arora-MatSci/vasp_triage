@@ -47,15 +47,19 @@ def resolve_path(text):
 
 # Walk through root and all its subdirectories.
 # Return a sorted list of paths to directories that contain an INCAR.
+# Report folders made by this tool are skipped.
 def find_calc_dirs(root):
     root = os.path.abspath(resolve_path(root))
     calc_dirs = []
 
-    # os.walk visits every directory below root, one at a time.
-    # dir_path   : path of the current directory
-    # sub_dirs   : names of directories inside it (not used here)
-    # file_names : names of files inside it
     for dir_path, sub_dirs, file_names in os.walk(root):
+        # Do not walk into report folders made by report.py
+        kept = []
+        for name in sub_dirs:
+            if not name.startswith(config.REPORT_PREFIX):
+                kept.append(name)
+        sub_dirs[:] = kept
+
         if config.INCAR_NAME in file_names:
             calc_dirs.append(dir_path)
 

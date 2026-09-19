@@ -8,10 +8,14 @@
 #   edit      change INCAR and KPOINTS, calls edit.py
 #   submit    submit folders with sbatch, calls resubmit.py
 #
+# Every command is written to agent_log.txt in the root folder,
+# together with the output it printed.
+#
 # Example:
 #   python3 agent.py status /path/to/calculations
 #   python3 agent.py submit --status "not submitted" --root /path
 
+import datetime
 import getpass
 import os
 import subprocess
@@ -20,22 +24,50 @@ import sys
 import classify
 import config
 import scan
-import datetime
 
-# Name of the command log, kept in the same folder as the scripts.
+
+# Name of the command log. It is kept in the root folder.
 LOG_FILE = "agent_log.txt"
 
 
-# Add one line to the command log.
-def write_log(command_text, result_text):
-    code_dir = os.path.dirname(os.path.abspath(__file__))
-    log_path = os.path.join(code_dir, LOG_FILE)
+# Find the root folder in the options the user typed.
+# Looks for --root, then for a single plain word after the command.
+# Return None if no root was given, for example with --list.
+def find_root(command, rest):
+    for index in range(len(rest)):
+        if rest[index] == "--root" and index + 1 < len(rest):
+            return scan.resolve_path(rest[index + 1])
 
+    # status, report, and history take a plain path
+    if command in ["status", "report", "history"]:
+        if len(rest) == 1:
+            return scan.resolve_path(rest[0])
+
+    return None
+
+
+# Add one block to the command log in the root folder.
+# If no root is known, the log goes next to the scripts instead.
+def write_log(root, command_text, result_text, output_text):
+    if root is not None and os.path.isdir(root):
+        log_dir = root
+    else:
+        log_dir = os.path.dirname(os.path.abspath(__file__))
+
+    log_path = os.path.join(log_dir, LOG_FILE)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    line = now + " | " + command_text + " | " + result_text + "\n"
+
+    lines = []
+    lines.append("=" * 70)
+    lines.append(now + " | python3 agent.py " + command_text)
+    lines.append("Result: " + result_text)
+    lines.append("")
+    lines.append(output_text.rstrip())
+    lines.append("")
 
     with open(log_path, "a") as f:
-        f.write(line)
+        f.write("\n".join(lines) + "\n")
+
 
 # Ask SLURM for the state of each of my jobs.
 # Return a dictionary such as {"RUNNING": 3, "PENDING": 12}.
@@ -65,32 +97,35 @@ def get_job_states():
     return states
 
 
-# Print how many of my jobs are running and pending.
-def print_queue_summary():
+# Build the text of the queue summary.
+# Return it as one block of text instead of printing it.
+def queue_summary_text():
     states = get_job_states()
+    lines = []
 
     if states is None:
-        print("Queue: squeue not available.")
-        return
+        return "Queue: squeue not available."
 
     total = 0
     for state in states:
         total = total + states[state]
 
-    print("My jobs in the queue: " + str(total))
+    lines.append("My jobs in the queue: " + str(total))
     for state in sorted(states):
-        print("  " + state.lower() + ": " + str(states[state]))
+        lines.append("  " + state.lower() + ": " + str(states[state]))
 
     if config.QUEUE_LIMIT > 0:
         free = config.QUEUE_LIMIT - total
         if free < 0:
             free = 0
-        print("  free slots under limit " + str(config.QUEUE_LIMIT)
-              + ": " + str(free))
+        lines.append("  free slots under limit "
+                     + str(config.QUEUE_LIMIT) + ": " + str(free))
+
+    return "\n".join(lines)
 
 
-# Print how many folders are in each status.
-def print_folder_summary(root):
+# Build the text of the folder summary.
+def folder_summary_text(root):
     records = classify.classify_all(root)
 
     counts = {}
@@ -98,15 +133,16 @@ def print_folder_summary(root):
         status = record["status"]
         counts[status] = counts.get(status, 0) + 1
 
-    print("")
-    print("Folders under " + os.path.abspath(root) + ": "
-          + str(len(records)))
+    lines = []
+    lines.append("")
+    lines.append("Folders under " + os.path.abspath(root) + ": "
+                 + str(len(records)))
 
     # Print in report group order, so the output is always the same
     for group_name, statuses in config.REPORT_GROUPS:
         for status in statuses:
             if status in counts:
-                print("  " + status + ": " + str(counts[status]))
+                lines.append("  " + status + ": " + str(counts[status]))
 
     # Show folders that need attention
     problems = []
@@ -117,21 +153,47 @@ def print_folder_summary(root):
             problems.append(record["path"] + " [ZBRENT, criteria met]")
 
     if len(problems) > 0:
-        print("")
-        print("Needs a look:")
+        lines.append("")
+        lines.append("Needs a look:")
         for text in problems:
-            print("  " + text)
+            lines.append("  " + text)
+
+    return "\n".join(lines)
 
 
-# Run another script in this folder and pass the options on.
-# Return the exit code of that script.
+# Run another script, show its output live, and keep a copy.
+# Questions from the script still work, because its input stays
+# connected to the keyboard.
+# Return (exit code, output text).
 def run_script(script_name, options):
     code_dir = os.path.dirname(os.path.abspath(__file__))
     script_path = os.path.join(code_dir, script_name)
 
     command = [sys.executable, script_path] + options
-    result = subprocess.run(command)
-    return result.returncode
+
+    # Ask Python not to hold back output, so questions appear at once
+    child_env = os.environ.copy()
+    child_env["PYTHONUNBUFFERED"] = "1"
+
+    process = subprocess.Popen(command,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
+                               env=child_env)
+
+    collected = []
+
+    # Read small pieces, so a question without a newline is shown too
+    while True:
+        piece = process.stdout.read(1)
+        if piece == b"":
+            break
+        text = piece.decode("utf-8", errors="replace")
+        sys.stdout.write(text)
+        sys.stdout.flush()
+        collected.append(text)
+
+    process.wait()
+    return process.returncode, "".join(collected)
 
 
 def print_usage():
@@ -145,6 +207,7 @@ def print_usage():
     print("Options for edit and submit are the same as edit.py"
           " and resubmit.py.")
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print_usage()
@@ -153,22 +216,22 @@ if __name__ == "__main__":
     command = sys.argv[1]
     rest = sys.argv[2:]
 
-    # The command as typed, for the log
+    # The command as typed, and the root folder for the log
     command_text = " ".join(sys.argv[1:])
+    root = find_root(command, rest)
 
     if command == "status":
         if len(rest) != 1:
             print("Usage: python3 agent.py status <root>")
             sys.exit(1)
 
-        root = scan.resolve_path(rest[0])
-        if not os.path.isdir(root):
-            print("Error: not a directory: " + root)
+        if root is None or not os.path.isdir(root):
+            print("Error: not a directory: " + rest[0])
             sys.exit(1)
 
-        print_queue_summary()
-        print_folder_summary(root)
-        write_log(command_text, "checked")
+        output = queue_summary_text() + "\n" + folder_summary_text(root)
+        print(output)
+        write_log(root, command_text, "checked", output)
 
     elif command in ["report", "history", "edit", "submit"]:
         script_names = {"report": "report.py",
@@ -176,13 +239,14 @@ if __name__ == "__main__":
                         "edit": "edit.py",
                         "submit": "resubmit.py"}
 
-        code = run_script(script_names[command], rest)
+        code, output = run_script(script_names[command], rest)
 
         if code == 0:
-            write_log(command_text, "finished")
+            result = "finished"
         else:
-            write_log(command_text, "failed, exit code " + str(code))
+            result = "failed, exit code " + str(code)
 
+        write_log(root, command_text, result, output)
         sys.exit(code)
 
     else:

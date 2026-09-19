@@ -145,3 +145,6 @@ STRESS_LIMIT_KB = 1.0
 
 # Text in OUTCAR above each force block
 FORCE_BLOCK_TEXT = "TOTAL-FORCE (eV/Angst)"
+
+# Report folders start with this text. scan.py skips them.
+REPORT_PREFIX = "report_"

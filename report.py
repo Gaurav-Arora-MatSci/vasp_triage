@@ -1,7 +1,7 @@
 # report.py
 # Write the scan results as CSV files and one Markdown report.
 # Uses classify.py to get one record per calculation directory.
-# Reports go into a new dated folder inside the vasp_triage folder.
+# Reports go into a new dated folder inside the root folder.
 
 import csv
 import datetime
@@ -9,15 +9,16 @@ import os
 import sys
 
 import classify
-import scan
 import config
+import scan
 
 
 # Column names in the CSV files, in order.
 CSV_COLUMNS = ["path", "status", "energy_sigma0_eV", "job_id",
                "ENCUT", "EDIFF", "EDIFFG", "NELM",
                "kpoints_scheme", "kpoints_mesh", "missing_files",
-               "message_label", "message_file", "message_line","scf_at_nelm","zbrent_note"]
+               "message_label", "message_file", "message_line",
+               "scf_at_nelm", "zbrent_note"]
 
 
 # Return the group name for one status, for example "failed".
@@ -169,6 +170,7 @@ def write_markdown(records, file_path):
                 message = (record["message_label"] + " ("
                            + record["message_file"] + "): "
                            + record["message_line"])
+
             if record["scf_at_nelm"]:
                 message = message + " [SCF at NELM]"
 
@@ -205,22 +207,20 @@ def make_report_folder_name():
     else:
         am_pm = "PM"
 
-    return ("report_" + day + "_" + month + "_" + year + "_"
+    return (config.REPORT_PREFIX + day + "_" + month + "_" + year + "_"
             + str(hour) + "_" + minute + am_pm)
 
 
-# Create a new report folder inside the vasp_triage folder.
+# Create a new report folder inside the root folder.
 # If the name already exists, add _2, _3, and so on.
 # Return the full path of the new folder.
-def create_report_folder():
-    # Folder that holds this report.py file, for example ~/vasp_triage
-    code_dir = os.path.dirname(os.path.abspath(__file__))
+def create_report_folder(root):
     name = make_report_folder_name()
 
-    out_dir = os.path.join(code_dir, name)
+    out_dir = os.path.join(root, name)
     number = 2
     while os.path.exists(out_dir):
-        out_dir = os.path.join(code_dir, name + "_" + str(number))
+        out_dir = os.path.join(root, name + "_" + str(number))
         number = number + 1
 
     os.makedirs(out_dir)
@@ -234,15 +234,14 @@ if __name__ == "__main__":
         print("Usage: python3 report.py /path/to/calculations")
         sys.exit(1)
 
-    root = sys.argv[1]
+    root = scan.resolve_path(sys.argv[1])
 
-    root = scan.resolve_path(root)
     if not os.path.isdir(root):
         print("Error: not a directory: " + root)
         sys.exit(1)
 
     records = classify.classify_all(root)
-    out_dir = create_report_folder()
+    out_dir = create_report_folder(os.path.abspath(root))
 
     written = write_all_csv(records, out_dir)
 
