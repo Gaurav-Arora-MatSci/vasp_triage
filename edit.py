@@ -59,7 +59,7 @@ def select_dirs(status, group, root, list_path):
     selected = []
 
     if list_path is not None:
-        return read_dir_list(list_path)
+        return read_dir_list(scan.resolve_path(list_path))
 
     # Find which statuses to accept
     wanted = []

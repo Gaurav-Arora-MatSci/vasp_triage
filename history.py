@@ -262,6 +262,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     root = sys.argv[1]
+    root = scan.resolve_path(root)
     if not os.path.isdir(root):
         print("Error: not a directory: " + root)
         sys.exit(1)
