@@ -18,8 +18,8 @@ import subprocess
 import sys
 
 import classify
-import scan
 import config
+import scan
 
 
 # Ask SLURM for the state of each of my jobs.
@@ -144,8 +144,7 @@ if __name__ == "__main__":
             print("Usage: python3 agent.py status <root>")
             sys.exit(1)
 
-        root = rest[0]
-        root = scan.resolve_path(root)
+        root = scan.resolve_path(rest[0])
         if not os.path.isdir(root):
             print("Error: not a directory: " + root)
             sys.exit(1)
