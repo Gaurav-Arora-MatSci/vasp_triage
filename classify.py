@@ -143,6 +143,33 @@ def zbrent_check(calc_dir, outcar_path, oszicar_path):
     return met, note
 
 
+# Compare the POTCAR elements with the POSCAR element line.
+# Return (labels text, ok, note).
+# ok is True for a match, False for a mismatch, None if not checked.
+def potcar_check(calc_dir):
+    labels = parse.get_potcar_labels(calc_dir)
+    elements = parse.get_poscar_elements(calc_dir)
+    labels_text = " ".join(labels)
+
+    if len(labels) == 0:
+        return labels_text, None, "POTCAR missing or unreadable"
+
+    if len(elements) == 0:
+        return labels_text, None, "POSCAR has no element line"
+
+    # W_pv becomes W, Re becomes Re
+    potcar_elements = []
+    for label in labels:
+        potcar_elements.append(label.split("_")[0])
+
+    if potcar_elements == elements:
+        return labels_text, True, None
+
+    note = ("POTCAR order " + " ".join(potcar_elements)
+            + " differs from POSCAR " + " ".join(elements))
+    return labels_text, False, note
+
+
 # Search the slurm file first, then OUTCAR, for error text.
 # Return (label, file name, line), or (None, None, None).
 def find_error_in_files(slurm_path, outcar_path):
@@ -200,6 +227,12 @@ def classify(calc_dir, queued_dirs):
     # Store the key INCAR tags, for example record["ENCUT"] = "350"
     for tag in config.KEY_INCAR_TAGS:
         record[tag] = parse.get_incar_value(calc_dir, tag)
+
+    # Check POTCAR against POSCAR for every folder, even before running
+    labels, ok, note = potcar_check(calc_dir)
+    record["potcar_labels"] = labels
+    record["potcar_ok"] = ok
+    record["potcar_note"] = note
 
     # Step 1: job is still in the queue
     if os.path.realpath(calc_dir) in queued_dirs:
@@ -301,3 +334,5 @@ if __name__ == "__main__":
                   + record["message_line"])
         if record["zbrent_note"] is not None:
             print("    " + record["zbrent_note"])
+        if record["potcar_ok"] is False:
+            print("    " + record["potcar_note"])

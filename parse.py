@@ -400,6 +400,48 @@ def get_max_stress(outcar_path):
 
     return largest
 
+# Return the POTCAR labels in order, for example ["W_pv", "Re_pv"].
+# Read from the TITEL lines. Return an empty list if POTCAR is missing.
+def get_potcar_labels(calc_dir):
+    potcar_path = os.path.join(calc_dir, config.POTCAR_NAME)
+    labels = []
+
+    if not os.path.isfile(potcar_path):
+        return labels
+
+    with open(potcar_path, "r", errors="replace") as f:
+        for line in f:
+            if "TITEL" not in line or "=" not in line:
+                continue
+
+            # Example: TITEL  = PAW_PBE W_pv 08Apr2002
+            words = line.split("=", 1)[1].split()
+            if len(words) >= 2:
+                labels.append(words[1])
+            elif len(words) == 1:
+                labels.append(words[0])
+
+    return labels
+
+
+# Return the element names on POSCAR line 6, for example ["W", "Re"].
+# Return an empty list if POSCAR is missing or has no element line.
+def get_poscar_elements(calc_dir):
+    poscar_path = os.path.join(calc_dir, config.POSCAR_NAME)
+    lines = read_lines(poscar_path)
+
+    if len(lines) < 7:
+        return []
+
+    words = lines[5].split()
+
+    # Old POSCAR files have atom counts here instead of names
+    for word in words:
+        if word.isdigit():
+            return []
+
+    return words
+
 # Run this file directly to test all functions on one directory.
 # Example: python3 parse.py /path/to/one/calculation
 if __name__ == "__main__":
