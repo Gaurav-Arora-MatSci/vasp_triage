@@ -65,21 +65,74 @@ KEY_INCAR_TAGS = ["ENCUT", "EDIFF", "EDIFFG", "NELM", "NSW", "ISIF",
 # Each entry: (text to search for, short label for the report)
 # Order matters: the first match wins.
 # ---------------------------------------------------------------
+# ---------------------------------------------------------------
+# Error patterns searched in the slurm file and OUTCAR
+# Each entry: (text to search for, short label for the report)
+# A list means every text must be on the same line.
+# Order matters: the first match wins. Fatal errors come first,
+# warnings come last.
+# VASP strings are taken from custodian VaspErrorHandler.
+# ---------------------------------------------------------------
 ERROR_PATTERNS = [
+    # Job killed by the scheduler or missing files
     (["file not found", "POTCAR"], "POTCAR missing"),
     ("DUE TO TIME LIMIT", "walltime"),
     ("oom-kill", "out of memory"),
     ("Out Of Memory", "out of memory"),
+    ("Allocation would exceed memory limit", "out of memory"),
     ("CANCELLED", "cancelled"),
+
+    # Fatal VASP errors
     ("ZBRENT: fatal error", "zbrent"),
-    ("ZHEGV", "zhegv"),
-    ("ZPOTRF", "zpotrf"),
-    ("Sub-Space-Matrix is not hermitian", "subspace hermitian"),
-    ("VERY BAD NEWS", "very bad news"),
-    ("internal error in subroutine", "internal error"),
+    ("ZBRENT: fatal internal in", "zbrent"),
+    ("BRMIX: very serious problems", "brmix"),
+    ("Error EDDDAV: Call to ZHEGV failed", "edddav"),
+    ("ERROR EDDIAG: Call to routine ZHEEV failed", "zheev"),
+    ("ERROR in EDDIAG: call to ZHEEV", "eddiag"),
+    ("LAPACK: Routine ZPOTRF failed", "zpotrf"),
+    ("Routine ZPOTRF ZTRTRI", "zpotrf"),
+    ("ERROR in subspace rotation PSSYEVX", "pssyevx"),
+    ("ERROR in subspace rotation PDSYEVX", "pdsyevx"),
+    ("EDWAV: internal error, the gradient is not orthogonal",
+     "grad not orth"),
+    ("REAL_OPTLAY: internal error", "real optlay"),
+    ("REAL_OPT: internal ERROR", "real optlay"),
+    ("ERROR RSPHER", "rspher"),
+    ("TOO FEW BANDS", "too few bands"),
+    ("number of bands is not sufficient", "too few bands"),
+    ("BRIONS problems: POTIM should be increased", "brions"),
+    ("internal error in subroutine PRICEL", "pricel"),
+    ("PRICELV: current lattice and primitive lattice are incommensurate",
+     "pricelv"),
+    ("rotation matrix was not found (increase SYMPREC)", "inv rot mat"),
+    ("Found some non-integer element in rotation matrix", "rot matrix"),
+    ("group operation missing", "point group"),
     ("Inconsistent Bravais lattice", "bravais lattice"),
-    ("RSPHER", "rspher"),
-    ("BRIONS problems", "brions"),
+    ("ERROR: the triple product of the basis vectors", "triple product"),
+    ("Could not get correct shifts", "incorrect shift"),
+    ("Fatal error detecting k-mesh", "ksymm"),
+    ("Fatal error: unable to match k-point", "ksymm"),
+    ("HNFORM: k-point generating", "hnform"),
+    ("Tetrahedron method fails", "tet"),
+    ("tetrahedron method fails", "tet"),
+    ("Routine TETIRR needs special values", "tetirr"),
+    ("ERROR: SBESSELITER : nicht konvergent", "nicht konv"),
+    ("One of the lattice vectors is very long (>50 A), but AMIN", "amin"),
+    ("internal error in SET_CORE_WF", "set core wf"),
+    ("while reading WAVECAR", "wavecar read"),
+    ("Error reading item", "read error"),
+    ("internal error in GENERATE_KPOINTS_TRANS", "kpoints trans"),
+    ("RHOSYG", "rhosyg"),
+    ("POSMAP", "posmap"),
+
+    # Generic messages, after the specific ones
+    ("internal error in subroutine", "internal error"),
+    ("VERY BAD NEWS", "very bad news"),
+
+    # Warnings: a run can still finish with these
+    ("Sub-Space-Matrix is not hermitian", "subspace hermitian"),
+    ("WARNING in EDDRMM: call to ZHEGV failed", "eddrmm"),
+    ("DENTET", "dentet"),
 ]
 
 # ---------------------------------------------------------------
