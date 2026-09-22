@@ -18,7 +18,8 @@ CSV_COLUMNS = ["path", "status", "energy_sigma0_eV", "job_id",
                "ENCUT", "EDIFF", "EDIFFG", "NELM",
                "kpoints_scheme", "kpoints_mesh", "missing_files",
                "message_label", "message_file", "message_line",
-               "scf_at_nelm", "zbrent_note"]
+               "scf_at_nelm", "zbrent_note", "potcar_labels",
+               "potcar_ok"]
 
 
 # Return the group name for one status, for example "failed".
@@ -66,6 +67,8 @@ def record_to_row(record):
     row.append(to_text(record["message_line"]))
     row.append(str(record["scf_at_nelm"]))
     row.append(to_text(record["zbrent_note"]))
+    row.append(to_text(record["potcar_labels"]))
+    row.append(to_text(record["potcar_ok"]))
     return row
 
 
@@ -184,8 +187,168 @@ def write_markdown(records, file_path):
                          + " | " + md_cell(message) + " |")
         lines.append("")
 
+    # Checks that matter before comparing energies
+    lines.extend(potcar_section(records))
+    lines.extend(consistency_section(records))
+
     with open(file_path, "w") as f:
         f.write("\n".join(lines))
+
+
+# Values compared in the consistency check: (label, function).
+# Each function takes a record and returns the value as text.
+def consistency_fields():
+    def encut(record):
+        return number_text(record["ENCUT"])
+
+    def ediff(record):
+        return number_text(record["EDIFF"])
+
+    def ediffg(record):
+        return number_text(record["EDIFFG"])
+
+    def kpoints(record):
+        return (record["kpoints_scheme"] + " "
+                + record["kpoints_mesh"]).strip()
+
+    def potcar(record):
+        return record["potcar_labels"]
+
+    return [("ENCUT", encut), ("EDIFF", ediff), ("EDIFFG", ediffg),
+            ("KPOINTS", kpoints), ("POTCAR", potcar)]
+
+
+# Turn a number written in INCAR into one standard form.
+# So 1E-04, 1e-4, and 0.0001 all give the same text.
+def number_text(value):
+    if value is None:
+        return "not set"
+    try:
+        return repr(float(value))
+    except ValueError:
+        return value
+
+
+# Group records by the folder that holds them.
+# Return a dictionary: parent folder -> list of records.
+def group_by_parent(records):
+    groups = {}
+    for record in records:
+        parent = os.path.dirname(record["path"])
+        if parent not in groups:
+            groups[parent] = []
+        groups[parent].append(record)
+    return groups
+
+
+# Return the most common value in a list, and how often it appears.
+def most_common(values):
+    counts = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+
+    best_value = None
+    best_count = 0
+    for value in sorted(counts):
+        if counts[value] > best_count:
+            best_value = value
+            best_count = counts[value]
+
+    return best_value, best_count
+
+
+# Build the POTCAR check section of the report.
+# Return a list of Markdown lines.
+def potcar_section(records):
+    lines = []
+    lines.append("## POTCAR check")
+    lines.append("")
+
+    wrong = []
+    unchecked = []
+    for record in records:
+        if record["potcar_ok"] is False:
+            wrong.append(record)
+        elif record["potcar_ok"] is None:
+            unchecked.append(record)
+
+    if len(wrong) == 0 and len(unchecked) == 0:
+        lines.append("All POTCAR files match the POSCAR element order.")
+        lines.append("")
+        return lines
+
+    if len(wrong) > 0:
+        lines.append("| Path | Problem |")
+        lines.append("|---|---|")
+        for record in sorted(wrong, key=lambda r: r["path"]):
+            lines.append("| " + md_cell(record["path"]) + " | "
+                         + md_cell(record["potcar_note"]) + " |")
+        lines.append("")
+
+    if len(unchecked) > 0:
+        lines.append("Not checked:")
+        lines.append("")
+        for record in sorted(unchecked, key=lambda r: r["path"]):
+            lines.append("- " + record["path"] + ": "
+                         + record["potcar_note"])
+        lines.append("")
+
+    return lines
+
+
+# Build the consistency section of the report.
+# Folders are compared only with others in the same parent folder.
+# Return a list of Markdown lines.
+def consistency_section(records):
+    lines = []
+    lines.append("## Consistency within each folder")
+    lines.append("")
+    lines.append("A KPOINTS mesh is compared as written. The same mesh on "
+                 "cells of different size is not equivalent.")
+    lines.append("")
+
+    groups = group_by_parent(records)
+
+    for parent in sorted(groups):
+        members = groups[parent]
+        lines.append("### " + parent + " (" + str(len(members))
+                     + " folders)")
+        lines.append("")
+
+        if len(members) < 2:
+            lines.append("Only one folder, nothing to compare.")
+            lines.append("")
+            continue
+
+        rows = []
+        for label, get_value in consistency_fields():
+            values = []
+            for record in members:
+                values.append(get_value(record))
+
+            common, count = most_common(values)
+            if count == len(values):
+                continue
+
+            for record in members:
+                value = get_value(record)
+                if value != common:
+                    rows.append("| " + label + " | " + md_cell(common)
+                                + " | " + md_cell(record["path"])
+                                + " | " + md_cell(value) + " |")
+
+        if len(rows) == 0:
+            lines.append("All settings consistent.")
+            lines.append("")
+            continue
+
+        lines.append("| Setting | Most common | Folder that differs "
+                     "| Its value |")
+        lines.append("|---|---|---|---|")
+        lines.extend(rows)
+        lines.append("")
+
+    return lines
 
 
 # Build a folder name from the current time.
