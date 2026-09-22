@@ -11,9 +11,12 @@
 # Every command is written to agent_log.txt in the root folder,
 # together with the output it printed.
 #
+# A folder is optional. Without one, the folder you are standing in
+# is used. See the vtriage script for a short command name.
+#
 # Example:
-#   python3 agent.py status /path/to/calculations
-#   python3 agent.py submit --status "not submitted" --root /path
+#   vtriage status
+#   vtriage submit --status "not submitted" --root /path
 
 import datetime
 import getpass
@@ -42,8 +45,16 @@ def find_root(command, rest):
     if command in ["status", "report", "history"]:
         if len(rest) == 1:
             return scan.resolve_path(rest[0])
+        if len(rest) == 0:
+            return os.getcwd()
 
-    return None
+    # edit and submit with --list work on a file, not a root folder
+    for option in rest:
+        if option == "--list":
+            return None
+
+    # Nothing was given, so use the folder I am standing in
+    return os.getcwd()
 
 
 # Add one block to the command log in the root folder.
@@ -198,12 +209,13 @@ def run_script(script_name, options):
 
 def print_usage():
     print("Usage:")
-    print("  python3 agent.py status <root>")
-    print("  python3 agent.py report <root>")
-    print("  python3 agent.py history <root>")
-    print("  python3 agent.py edit [options]")
-    print("  python3 agent.py submit [options]")
+    print("  vtriage status [root]")
+    print("  vtriage report [root]")
+    print("  vtriage history [root]")
+    print("  vtriage edit [options]")
+    print("  vtriage submit [options]")
     print("")
+    print("Without a root, the folder you are standing in is used.")
     print("Options for edit and submit are the same as edit.py"
           " and resubmit.py.")
 
@@ -221,12 +233,12 @@ if __name__ == "__main__":
     root = find_root(command, rest)
 
     if command == "status":
-        if len(rest) != 1:
-            print("Usage: python3 agent.py status <root>")
+        if len(rest) > 1:
+            print("Usage: vtriage status [root]")
             sys.exit(1)
 
         if root is None or not os.path.isdir(root):
-            print("Error: not a directory: " + rest[0])
+            print("Error: not a directory: " + str(root))
             sys.exit(1)
 
         output = queue_summary_text() + "\n" + folder_summary_text(root)
@@ -238,6 +250,18 @@ if __name__ == "__main__":
                         "history": "history.py",
                         "edit": "edit.py",
                         "submit": "resubmit.py"}
+
+        # Pass the current folder on when no folder was given
+        if command in ["report", "history"] and len(rest) == 0:
+            rest = ["."]
+
+        if command in ["edit", "submit"]:
+            has_target = False
+            for option in rest:
+                if option in ["--root", "--list"]:
+                    has_target = True
+            if not has_target:
+                rest = rest + ["--root", "."]
 
         code, output = run_script(script_names[command], rest)
 

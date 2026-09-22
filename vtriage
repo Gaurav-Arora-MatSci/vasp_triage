@@ -1,0 +1,3 @@
+#!/bin/bash
+# Run agent.py from any directory.
+python3 "$(dirname "$(readlink -f "$0")")/agent.py" "$@"
