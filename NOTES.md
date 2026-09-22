@@ -45,3 +45,10 @@ each parent folder. Both appear at the end of report.md.
 Error patterns taken from custodian VaspErrorHandler.
 agent_log.txt in the root folder records each command and its output.
 Reports are written in the root folder.
+
+## Vtriage running from any folder
+vtriage is a launcher script. Add the repository folder to PATH, then
+run vtriage from any directory. Without a folder argument, the current
+folder is used as the root.
+Paths: Perlmutter /global/homes/g/garora/vasp_triage
+       Stampede3 check whether the copy is in HOME or WORK
