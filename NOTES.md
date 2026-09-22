@@ -38,3 +38,10 @@ Plain scripts are not AI tools, so the login node is fine for a small tree.
 Augie: AI APIs blocked. Pilot tested here.
 NERSC Perlmutter: API reachable. Agents allowed from login nodes, but
 no find or recursive searches on large trees.
+
+POTCAR check: element order in POTCAR against POSCAR line 6.
+Consistency: ENCUT, EDIFF, EDIFFG, KPOINTS, POTCAR compared within
+each parent folder. Both appear at the end of report.md.
+Error patterns taken from custodian VaspErrorHandler.
+agent_log.txt in the root folder records each command and its output.
+Reports are written in the root folder.
