@@ -15,6 +15,28 @@ import config
 import scan
 
 
+# Print the logo. Shown once when the menu starts.
+# The lines are raw text, so a backslash stays as written.
+def print_banner():
+    lines = [
+        r" ==========================================================",
+        r"  __     ____    ____  ____   _____ ____  ___    ____ _____",
+        r"  \ \   / /  \  / ___||  _ \ |_   _|  _ \|_ _|  / ___| ____|",
+        r"   \ \ / / /\ \ \___ \| |_) |  | | | |_) || |  | |  _|  _|",
+        r"    \ V / ____ \ ___) |  __/   | | |  _ < | |  | |_| | |___",
+        r"     \_/_/    \_\____/|_|      |_| |_| \_\___|  \____|_____|",
+        r" ==========================================================",
+    ]
+
+    for line in lines:
+        print(line)
+
+    print("   VASP job triage and resubmission      version "
+          + config.VERSION)
+    print("   " + config.AUTHOR)
+    print(" " + "=" * 58)
+
+
 # Ask a question and return the answer with spaces removed.
 def ask(question):
     try:
@@ -358,10 +380,10 @@ def ask_root(old_root):
 
 
 def main(root):
+    print_banner()
+
     while True:
         print("")
-        print("=" * 60)
-        print("vasp_triage")
         print("Root: " + root)
 
         choices = [("status summary", "status"),

@@ -1,8 +1,15 @@
+
 # config.py
 # Settings shared by all modules.
 # Change values here, not inside the other files.
 # Python reads this file from top to bottom, so every name must be
 # defined above the line that uses it.
+
+# ---------------------------------------------------------------
+# Package information
+# ---------------------------------------------------------------
+VERSION = "0.3.0"
+AUTHOR = "Gaurav Arora, Villanova University"
 
 # ---------------------------------------------------------------
 # File names inside each calculation directory
