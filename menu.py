@@ -18,23 +18,25 @@ import scan
 # Print the logo. Shown once when the menu starts.
 # The lines are raw text, so a backslash stays as written.
 def print_banner():
+    bar = " " + "=" * 64
+
     lines = [
-        r" ==========================================================",
-        r"  __     ____    ____  ____   _____ ____  ___    ____ _____",
-        r"  \ \   / /  \  / ___||  _ \ |_   _|  _ \|_ _|  / ___| ____|",
-        r"   \ \ / / /\ \ \___ \| |_) |  | | | |_) || |  | |  _|  _|",
-        r"    \ V / ____ \ ___) |  __/   | | |  _ < | |  | |_| | |___",
-        r"     \_/_/    \_\____/|_|      |_| |_| \_\___|  \____|_____|",
-        r" ==========================================================",
+        r"  __     ___    ____  ____    _____ ____  ___    _    ____ _____",
+        r"  \ \   / / \  / ___||  _ \  |_   _|  _ \|_ _|  / \  / ___| ____|",
+        r"   \ \ / / _ \ \___ \| |_) |   | | | |_) || |  / _ \| |  _|  _|",
+        r"    \ V / ___ \ ___) |  __/    | | |  _ < | | / ___ \ |_| | |___",
+        r"     \_/_/   \_\____/|_|       |_| |_| \_\___/_/   \_\____|_____|",
     ]
 
+    print(bar)
     for line in lines:
         print(line)
+    print(bar)
 
-    print("   VASP job triage and resubmission      version "
+    print("   VASP job triage and resubmission        version "
           + config.VERSION)
     print("   " + config.AUTHOR)
-    print(" " + "=" * 58)
+    print(bar)
 
 
 # Ask a question and return the answer with spaces removed.
