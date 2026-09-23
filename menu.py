@@ -10,6 +10,7 @@ import os
 import sys
 
 import agent
+import classify
 import config
 import scan
 
@@ -206,6 +207,109 @@ def ask_submit_options(root):
     return options
 
 
+# Ask which folders to list, by group or by status.
+# Return a list of status labels, or None.
+def ask_status_filter():
+    choices = [("everything", "all")]
+    for group_name, statuses in config.REPORT_GROUPS:
+        choices.append(("group: " + group_name, "group:" + group_name))
+    for group_name, statuses in config.REPORT_GROUPS:
+        for status in statuses:
+            choices.append(("status: " + status, "status:" + status))
+
+    picked = ask_choice("Which folders would you like to see?",
+                        choices)
+    if picked is None:
+        return None
+
+    if picked == "all":
+        wanted = []
+        for group_name, statuses in config.REPORT_GROUPS:
+            for status in statuses:
+                wanted.append(status)
+        return wanted
+
+    if picked.startswith("group:"):
+        name = picked[len("group:"):]
+        for group_name, statuses in config.REPORT_GROUPS:
+            if group_name == name:
+                return statuses
+
+    return [picked[len("status:"):]]
+
+
+# Build one line of text for a folder in the list.
+def folder_line(record):
+    text = record["status"] + " | " + record["path"]
+
+    if record["energy"] is not None:
+        text = text + " | " + str(record["energy"]) + " eV"
+
+    return text
+
+
+# List the folders in the chosen statuses, with their messages.
+# Offer to save the paths to a list file.
+def list_folders(root):
+    wanted = ask_status_filter()
+    if wanted is None:
+        return
+
+    records = classify.classify_all(root)
+
+    picked = []
+    for record in records:
+        if record["status"] in wanted:
+            picked.append(record)
+
+    lines = []
+    for record in picked:
+        lines.append(folder_line(record))
+
+        if record["message_label"] is not None:
+            lines.append("    " + record["message_file"] + ": "
+                         + record["message_line"])
+        if record["scf_at_nelm"]:
+            lines.append("    last SCF hit NELM")
+        if record["zbrent_note"] is not None:
+            lines.append("    " + record["zbrent_note"])
+        if record["potcar_ok"] is False:
+            lines.append("    " + record["potcar_note"])
+        if len(record["missing"]) > 0:
+            lines.append("    missing: "
+                         + ", ".join(record["missing"]))
+
+    output = "\n".join(lines)
+    print("")
+    if len(picked) == 0:
+        output = "No folder has that status."
+        print(output)
+    else:
+        print(output)
+        print("")
+        print("Folders listed: " + str(len(picked)))
+
+    agent.write_log(root, "list " + " ".join(wanted),
+                    str(len(picked)) + " folders", output)
+
+    if len(picked) == 0:
+        return
+
+    answer = ask("Save these paths to a list file? y or n: ")
+    if answer.lower() != "y":
+        return
+
+    file_path = ask_text("File name: ")
+    if file_path is None:
+        return
+
+    with open(file_path, "w") as f:
+        for record in picked:
+            f.write(record["path"] + "\n")
+
+    print("Written: " + os.path.abspath(file_path))
+
+
 # Show the command, then run it through agent.py.
 def run_command(command, options):
     text = "vtriage " + command + " " + " ".join(options)
@@ -261,6 +365,7 @@ def main(root):
         print("Root: " + root)
 
         choices = [("status summary", "status"),
+                   ("list folders by status", "list"),
                    ("write report", "report"),
                    ("archive finished runs", "history"),
                    ("submit jobs", "submit"),
@@ -275,6 +380,9 @@ def main(root):
 
         if picked == "status":
             show_status(root)
+
+        elif picked == "list":
+            list_folders(root)
 
         elif picked == "root":
             root = ask_root(root)
