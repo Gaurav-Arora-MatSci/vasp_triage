@@ -41,8 +41,8 @@ def find_root(command, rest):
         if rest[index] == "--root" and index + 1 < len(rest):
             return scan.resolve_path(rest[index + 1])
 
-    # status, report, and history take a plain path
-    if command in ["status", "report", "history"]:
+    # status, report, history, and menu take a plain path
+    if command in ["status", "report", "history", "menu"]:
         if len(rest) == 1:
             return scan.resolve_path(rest[0])
         if len(rest) == 0:
@@ -212,6 +212,7 @@ def print_usage():
     print("  vtriage status [root]")
     print("  vtriage report [root]")
     print("  vtriage history [root]")
+    print("  vtriage menu [root]")
     print("  vtriage edit [options]")
     print("  vtriage submit [options]")
     print("")
@@ -244,6 +245,19 @@ if __name__ == "__main__":
         output = queue_summary_text() + "\n" + folder_summary_text(root)
         print(output)
         write_log(root, command_text, "checked", output)
+
+    elif command == "menu":
+        import menu
+
+        if len(rest) > 1:
+            print("Usage: vtriage menu [root]")
+            sys.exit(1)
+
+        if root is None or not os.path.isdir(root):
+            print("Error: not a directory: " + str(root))
+            sys.exit(1)
+
+        menu.main(os.path.abspath(root))
 
     elif command in ["report", "history", "edit", "submit"]:
         script_names = {"report": "report.py",
