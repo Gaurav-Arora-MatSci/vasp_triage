@@ -21,12 +21,49 @@ crashed, some never submitted, and no memory of which is which.
 ## Install
 
 ```bash
-git clone https://github.com/USER/vasp_triage.git
+git clone https://github.com/Gaurav-Arora-MatSci/vasp_triage.git
 export PATH=$PWD/vasp_triage:$PATH
 ```
 
 Add the export line to your `~/.bashrc` to keep it. No pip, no conda,
 no database, no network. Python 3.5 or newer, and SLURM.
+
+## What it expects
+
+Three assumptions. All three are set in `config.py` if yours differ.
+
+**A calculation is any directory containing a file named `INCAR`.**
+That is the only rule for what gets scanned. Directories without one
+are ignored, and so are report folders the tool wrote itself. To keep
+a directory out of the scan, delete or rename its INCAR, for example
+to `INCAR.bak`.
+
+**The job script is named `submit_vasp.sh`**, and it sits in each
+calculation directory. It must run VASP in its own directory, with no
+hard coded path to somewhere else, because the tool runs
+`sbatch submit_vasp.sh` from inside the folder.
+
+**SLURM output is named `slurm-JOBID.out`**, which is the default.
+Do not add a separate `-e` error file. Walltime kills, out of memory
+messages, and MPI errors go to stderr, so splitting the streams hides
+exactly the messages the tool needs.
+
+```bash
+#SBATCH -o slurm-%j.out
+```
+
+One calculation per directory. A folder holding several runs, or a
+parent folder with a shared INCAR driving subfolders, will be read as
+one calculation and reported wrongly.
+
+On an unfamiliar tree, check the count before trusting anything else:
+
+```bash
+vtriage status
+find . -name INCAR | wc -l
+```
+
+The two numbers should agree.
 
 ## Use
 
@@ -210,9 +247,7 @@ vasp_triage recording and triaging what came out.
 - Provenance is per directory, not a graph across derived quantities.
 - Unknown errors appear as `incomplete`, which tells you to look
   rather than telling you why.
-- One calculation per directory, with a consistently named job
-  script. That assumption is what keeps it simple.
-- Written against SLURM.
+- Written against SLURM, with the file name assumptions above.
 
 ## Layout
 
