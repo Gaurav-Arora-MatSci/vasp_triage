@@ -43,8 +43,9 @@ My jobs in the queue: 15
 
 Folders under /scratch/BCC: 60
   converged: 41
+  crashed after reaching accuracy: 1
   SCF not converged: 2
-  crashed: 4
+  crashed: 3
   running or pending: 13
 
 Needs a look:
@@ -59,7 +60,7 @@ Every command takes the current folder as its root, so you can just
 vtriage menu
 ```
 
-## The five commands
+## The commands
 
 | Command | Does |
 |---|---|
@@ -79,6 +80,10 @@ vtriage submit --status "not submitted" --max 10
 vtriage submit --group failed --skip-zbrent-met
 ```
 
+The menu can list every folder in a given status, with its error
+lines, and save those paths to a file that `--list` then reads. So
+finding the broken runs and acting on exactly those is two steps.
+
 Nothing is changed or submitted until you type yes.
 
 ## Status rules
@@ -88,7 +93,11 @@ correct:
 
 1. in the SLURM queue, by working directory
 2. no output at all, so not submitted, or missing inputs
-3. no timing block in OUTCAR, so crashed or incomplete
+3. no timing block in OUTCAR, so the run did not finish:
+   - the required accuracy line is present, so crashed after
+     reaching accuracy
+   - a known error message, so crashed
+   - neither, so incomplete
 4. last electronic loop hit NELM, so SCF not converged
 5. NSW greater than 0 without the required accuracy line, so ionic
    not converged
@@ -115,6 +124,11 @@ with a ZBRENT bracketing error, the last force block and the stress
 tensor are read and reported against EDIFFG. A structure sitting at
 its minimum, where the optimizer has nothing left to do, is not the
 same as one that genuinely failed. Other tools just retry.
+
+**A relaxation that met EDIFFG before the job died.** Out of memory
+and walltime kills often land just after the ionic loop converged.
+Those get their own status and their own group in the report, instead
+of being lumped in with real crashes, and they restart from CONTCAR.
 
 **A fix that did not work.** If a folder crashes twice with the same
 error, you are warned before the third attempt.
