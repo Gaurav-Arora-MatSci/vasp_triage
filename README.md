@@ -10,6 +10,8 @@
  ================================================================
 ```
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22944313.svg)](https://doi.org/10.5281/zenodo.22944313)
+
 Scan thousands of VASP directories, find out what happened in each
 one, record the history inside the directory, fix the inputs, and
 resubmit. Standard library Python only. Nothing to install.
@@ -279,7 +281,9 @@ Issues and discussions are open.
 
 ## Citation
 
-If this saved you time, cite the release DOI.
+Arora, G. (2026). vasp_triage: triage and resubmission for VASP
+calculation directories (v1.0.0). Zenodo.
+https://doi.org/10.5281/zenodo.22944313
 
 ## License
 

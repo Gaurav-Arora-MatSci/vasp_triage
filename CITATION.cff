@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "vasp_triage"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: Gaurav
+    family-names: Arora
+    affiliation: Villanova University
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22944313
+repository-code: "https://github.com/Gaurav-Arora-MatSci/vasp_triage"
+license: MIT
+version: 1.0.0
+date-released: "2026-09-24"
