@@ -1,7 +1,9 @@
 __pycache__
+NOTES.md
+CLAUDE.md
 brag-output/
 report_*/
 nelm_list.txt
 nsw_list.txt
 why_vasp_triage.md
-#working_dirs_list.txt
+working_dirs_list.txt
