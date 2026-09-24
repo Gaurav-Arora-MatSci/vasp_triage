@@ -84,10 +84,11 @@ ERROR_PATTERNS = [
     # Job killed by the scheduler or missing files
     (["file not found", "POTCAR"], "POTCAR missing"),
     ("DUE TO TIME LIMIT", "walltime"),
-    ("oom-kill", "out of memory"),
+    ("oom_kill", "out of memory"),
     ("Out Of Memory", "out of memory"),
     ("Allocation would exceed memory limit", "out of memory"),
     ("CANCELLED", "cancelled"),
+    ("DUE TO TASK FAILURE", "task failure"),
 
     # Fatal VASP errors
     ("ZBRENT: fatal error", "zbrent"),
