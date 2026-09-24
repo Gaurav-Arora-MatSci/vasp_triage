@@ -52,3 +52,8 @@ run vtriage from any directory. Without a folder argument, the current
 folder is used as the root.
 Paths: Perlmutter /global/homes/g/garora/vasp_triage
        Stampede3 check whether the copy is in HOME or WORK
+
+SLURM writes oom_kill with an underscore, so the existing oom-kill
+pattern never matched and the crash was labelled cancelled.
+Both spellings are now matched, and DUE TO TASK FAILURE is
+separated from a walltime kill.

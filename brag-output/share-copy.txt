@@ -1,0 +1,1 @@
+vasp_triage doesn't run your VASP jobs — it walks into the ones you already ran, catches the failures that run clean and silent (like a mismatched POTCAR), and asks before it touches a single file. No pip, no conda, no database.
