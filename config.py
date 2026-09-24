@@ -153,6 +153,7 @@ STATUS_INCOMPLETE = "incomplete"
 STATUS_SCF_NOT_CONVERGED = "SCF not converged"
 STATUS_IONIC_NOT_CONVERGED = "ionic not converged"
 STATUS_CONVERGED = "converged"
+STATUS_RELAX_DONE_CRASHED = "crashed after reaching accuracy"
 
 # ---------------------------------------------------------------
 # Report groups. Each entry: (group name, list of statuses)
@@ -161,6 +162,7 @@ STATUS_CONVERGED = "converged"
 # ---------------------------------------------------------------
 REPORT_GROUPS = [
     ("converged", [STATUS_CONVERGED]),
+    ("almost_converged", [STATUS_RELAX_DONE_CRASHED]),
     ("not_converged", [STATUS_SCF_NOT_CONVERGED,
                        STATUS_IONIC_NOT_CONVERGED]),
     ("failed", [STATUS_CRASHED, STATUS_INCOMPLETE]),

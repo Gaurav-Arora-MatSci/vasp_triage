@@ -19,7 +19,7 @@ CSV_COLUMNS = ["path", "status", "energy_sigma0_eV", "job_id",
                "kpoints_scheme", "kpoints_mesh", "missing_files",
                "message_label", "message_file", "message_line",
                "scf_at_nelm", "zbrent_note", "potcar_labels",
-               "potcar_ok"]
+               "potcar_ok", "relax_done"]
 
 
 # Return the group name for one status, for example "failed".
@@ -69,6 +69,7 @@ def record_to_row(record):
     row.append(to_text(record["zbrent_note"]))
     row.append(to_text(record["potcar_labels"]))
     row.append(to_text(record["potcar_ok"]))
+    row.append(str(record["relax_done"]))
     return row
 
 
@@ -179,6 +180,10 @@ def write_markdown(records, file_path):
 
             if record["zbrent_note"] is not None:
                 message = message + " [" + record["zbrent_note"] + "]"
+
+            if record["status"] == config.STATUS_RELAX_DONE_CRASHED:
+                message = (message + " [reached required accuracy"
+                           " before the job died]")
 
             lines.append("| " + md_cell(record["path"])
                          + " | " + md_cell(record["status"])

@@ -124,6 +124,10 @@ def needs_contcar_restart(calc_dir, record):
     if record["status"] == config.STATUS_IONIC_NOT_CONVERGED:
         return True
 
+    # A run that met EDIFFG before dying is worth continuing
+    if record["status"] == config.STATUS_RELAX_DONE_CRASHED:
+        return True
+
     if record["status"] == config.STATUS_CRASHED:
         if record["message_label"] in config.CONTCAR_RESTART_LABELS:
             return True
@@ -249,6 +253,12 @@ if __name__ == "__main__":
             print("Warning: last SCF hit NELM. Fix NELM or ALGO"
                   " first: " + calc_dir)
 
+        # Note: the relaxation met EDIFFG before the job died
+        if record["status"] == config.STATUS_RELAX_DONE_CRASHED:
+            print("Note: reached required accuracy before the job"
+                  " died. Fix the cause, then this should finish"
+                  " quickly: " + calc_dir)
+
         # Warning and optional skip: ZBRENT crash near the minimum
         if record["zbrent_note"] is not None:
             print("Warning: ZBRENT: fatal error in bracketing, "
@@ -258,7 +268,8 @@ if __name__ == "__main__":
                 continue
 
         # Warning: same crash as the previous run
-        if record["status"] == config.STATUS_CRASHED:
+        if record["status"] in [config.STATUS_CRASHED,
+                                config.STATUS_RELAX_DONE_CRASHED]:
             old_label = history.previous_crash_label(calc_dir,
                                                      record["job_id"])
             if old_label is not None and old_label == record["message_label"]:

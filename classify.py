@@ -221,6 +221,7 @@ def classify(calc_dir, queued_dirs):
     record["message_file"] = None
     record["message_line"] = None
     record["scf_at_nelm"] = False
+    record["relax_done"] = False
     record["zbrent_met"] = False
     record["zbrent_note"] = None
 
@@ -265,7 +266,13 @@ def classify(calc_dir, queued_dirs):
 
     # Step 3: VASP did not finish normally
     if not parse.has_normal_end(outcar_path):
-        if label is not None:
+        # The ionic loop may still have met EDIFFG before the job died
+        record["relax_done"] = relax_done_in_files(slurm_path,
+                                                   outcar_path)
+
+        if record["relax_done"]:
+            record["status"] = config.STATUS_RELAX_DONE_CRASHED
+        elif label is not None:
             record["status"] = config.STATUS_CRASHED
         else:
             record["status"] = config.STATUS_INCOMPLETE
@@ -281,9 +288,11 @@ def classify(calc_dir, queued_dirs):
     # Step 4: VASP finished normally. Check convergence.
     record["energy"] = parse.get_final_energy(outcar_path)
 
+    record["relax_done"] = relax_done_in_files(slurm_path, outcar_path)
+
     if not scf_ok:
         record["status"] = config.STATUS_SCF_NOT_CONVERGED
-    elif nsw > 0 and not relax_done_in_files(slurm_path, outcar_path):
+    elif nsw > 0 and not record["relax_done"]:
         record["status"] = config.STATUS_IONIC_NOT_CONVERGED
     else:
         record["status"] = config.STATUS_CONVERGED
@@ -336,3 +345,5 @@ if __name__ == "__main__":
             print("    " + record["zbrent_note"])
         if record["potcar_ok"] is False:
             print("    " + record["potcar_note"])
+        if record["status"] == config.STATUS_RELAX_DONE_CRASHED:
+            print("    reached required accuracy before the job died")
