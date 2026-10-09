@@ -211,3 +211,18 @@ FORCE_BLOCK_TEXT = "TOTAL-FORCE (eV/Angst)"
 
 # Report folders start with this text. scan.py skips them.
 REPORT_PREFIX = "report_"
+
+
+# ---------------------------------------------------------------
+# Master activity log
+# ---------------------------------------------------------------
+# Folder that holds the log for every machine. Empty means off.
+# Make it a git repository to share it between machines.
+ACTIVITY_LOG_DIR = ""
+
+# Name of this machine, used in file names and section headers.
+# Set it by hand, because a compute node reports its own node name.
+MACHINE_NAME = "perlmutter"
+
+# Send the log folder to its git remote after each command.
+ACTIVITY_LOG_PUSH = True

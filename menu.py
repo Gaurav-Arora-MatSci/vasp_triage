@@ -9,6 +9,7 @@
 import os
 import sys
 
+import activity
 import agent
 import classify
 import config
@@ -334,6 +335,55 @@ def list_folders(root):
     print("Written: " + os.path.abspath(file_path))
 
 
+# Show the activity log menu: recent entries, archive, rebuild.
+def activity_menu(root):
+    if activity.log_dir() is None:
+        print("")
+        print("The master activity log is switched off.")
+        print("Set ACTIVITY_LOG_DIR in config.py to use it.")
+        print("See the README for how to set up the folder.")
+        return
+
+    while True:
+        choices = [("show the last few entries", "show"),
+                   ("start a fresh log, keep the old one", "archive"),
+                   ("rebuild MASTER.md", "rebuild"),
+                   ("where the log is kept", "where")]
+
+        picked = ask_choice("Activity log", choices)
+        if picked is None:
+            return
+
+        if picked == "show":
+            text = activity.recent_text(3)
+            print("")
+            if text == "":
+                print("Nothing recorded yet this month.")
+            else:
+                print(text)
+
+        elif picked == "archive":
+            answer = ask("Start a fresh log? Nothing is deleted."
+                         " y or n: ")
+            if answer.lower() != "y":
+                continue
+            old = activity.archive_now()
+            if old is None:
+                print("No log to archive yet.")
+            else:
+                print("Old log kept as: " + old)
+
+        elif picked == "rebuild":
+            activity.rebuild_master()
+            print("MASTER.md rebuilt.")
+
+        elif picked == "where":
+            print("")
+            print("Folder:  " + activity.log_dir())
+            print("Machine: " + activity.machine_name())
+            print("This month: " + str(activity.current_log_path()))
+
+
 # Show the command, then run it through agent.py.
 def run_command(command, options):
     text = "vtriage " + command + " " + " ".join(options)
@@ -394,6 +444,7 @@ def main(root):
                    ("archive finished runs", "history"),
                    ("submit jobs", "submit"),
                    ("edit INCAR or KPOINTS", "edit"),
+                   ("activity log", "activity"),
                    ("change the root folder", "root")]
 
         picked = ask_choice("What would you like to do?", choices)
@@ -407,6 +458,9 @@ def main(root):
 
         elif picked == "list":
             list_folders(root)
+
+        elif picked == "activity":
+            activity_menu(root)
 
         elif picked == "root":
             root = ask_root(root)

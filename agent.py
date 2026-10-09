@@ -24,6 +24,7 @@ import os
 import subprocess
 import sys
 
+import activity
 import classify
 import config
 import scan
@@ -78,6 +79,9 @@ def write_log(root, command_text, result_text, output_text):
 
     with open(log_path, "a") as f:
         f.write("\n".join(lines) + "\n")
+
+    # Also keep the entry in the master log, if that is switched on
+    activity.write_entry(command_text, root, result_text, output_text)
 
 
 # Ask SLURM for the state of each of my jobs.
