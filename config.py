@@ -222,7 +222,20 @@ ACTIVITY_LOG_DIR = ""
 
 # Name of this machine, used in file names and section headers.
 # Set it by hand, because a compute node reports its own node name.
-MACHINE_NAME = "perlmutter"
+MACHINE_NAME = ""
 
 # Send the log folder to its git remote after each command.
-ACTIVITY_LOG_PUSH = True
+ACTIVITY_LOG_PUSH = False
+
+
+
+# ---------------------------------------------------------------
+# Local settings, one file per machine
+# ---------------------------------------------------------------
+# local_settings.py is not tracked by git, so each machine keeps its
+# own values through a git pull. Anything set there overrides the
+# values above. See the README for what to put in it.
+try:
+    from local_settings import *
+except ImportError:
+    pass
