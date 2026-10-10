@@ -30,6 +30,24 @@ export PATH=$PWD/vasp_triage:$PATH
 Add the export line to your `~/.bashrc` to keep it. No pip, no conda,
 no database, no network. Python 3.5 or newer, and SLURM.
 
+### Per machine settings
+
+`config.py` is shared through git, so anything you change in it is
+overwritten the next time you pull. Put values that differ between
+machines in `local_settings.py` instead. It is not tracked, and
+`config.py` reads it last, so it overrides everything above.
+
+```bash
+cd vasp_triage
+cat > local_settings.py << 'EOF'
+MAX_SUBMIT = 20
+QUEUE_LIMIT = 15
+EOF
+```
+
+Any name from `config.py` can go in there, including the activity
+log settings below.
+
 ## What it expects
 
 Three assumptions. All three are set in `config.py` if yours differ.
@@ -227,6 +245,80 @@ supplementary material and the whole history goes too. Read it with
 A second log, `agent_log.txt`, is written in the campaign root with
 every command you ran and what it printed.
 
+## Everything you did, in one place
+
+Optional, and off until you switch it on. Every command you run, on
+every machine, is also recorded in one folder, with a section per
+machine. Make that folder a private git repository and the record
+follows you between clusters.
+
+Inside the folder:
+
+```
+logs/<machine>_<year>-<month>.log   one file per machine, per month
+MASTER.md                           every machine, current month
+push_error.log                      why the last push failed
+```
+
+Each machine only ever writes its own file, so two machines never
+conflict. `MASTER.md` is rebuilt from those files with a section per
+machine, and can always be regenerated from the menu. The month in
+the file name means logs rotate on their own, and nothing is ever
+deleted. The menu also lets you start a fresh log, keeping the old
+one.
+
+Pushing happens in the background and never blocks a command. It
+commits first, then pulls with rebase, then pushes, because a pull
+with the new log entry unstaged would be refused. Failures are
+silent, and the reason goes to `push_error.log`. A cluster with no
+outbound git keeps the log locally, and you push it by hand when you
+want.
+
+### Setting it up
+
+Make a new repository on GitHub, for example `vasp_triage_logs`.
+Set it to private, since the log holds your directory paths and job
+names. Tick the option to add a README so it is not empty.
+
+Copy its clone URL from the green Code button, then on each machine:
+
+```bash
+git clone git@github.com:YOU/vasp_triage_logs.git ~/vasp_triage_logs
+```
+
+Use the HTTPS URL with a personal access token if SSH is blocked.
+Then tell git who you are, or the background commit will fail
+silently:
+
+```bash
+cd ~/vasp_triage_logs
+git config user.name "Your Name"
+git config user.email "you@example.com"
+```
+
+Finally add these to `local_settings.py` in the vasp_triage folder:
+
+```python
+ACTIVITY_LOG_DIR = "~/vasp_triage_logs"
+MACHINE_NAME = "perlmutter"
+ACTIVITY_LOG_PUSH = True
+```
+
+Set `MACHINE_NAME` by hand on each machine, because a compute node
+reports its own node name. Set `ACTIVITY_LOG_PUSH = False` where the
+cluster blocks outbound git.
+
+Check it works:
+
+```bash
+cd /path/to/my/calculations
+vtriage status
+cat ~/vasp_triage_logs/MASTER.md
+cat ~/vasp_triage_logs/push_error.log
+```
+
+An empty `push_error.log` means the push went through.
+
 ## How it differs from custodian, atomate2, and AiiDA
 
 Those tools own the run. You start inside them and stay there, and in
@@ -264,6 +356,7 @@ edit.py       change INCAR and KPOINTS
 resubmit.py   sbatch with checks and limits
 agent.py      entry point, command log
 menu.py       numbered menu
+activity.py   the one place log across machines, optional
 vtriage       launcher
 ```
 
