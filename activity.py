@@ -142,9 +142,6 @@ def push_async():
 
     error_file = os.path.join(folder, "push_error.log")
 
-    # Pull first, so two machines pushing on the same day do not
-    # reject each other. Each machine writes its own file, so a
-    # rebase has nothing to conflict over.
     # Commit first, then pull, then push. A pull with unstaged
     # changes in the folder is refused, and the new log entry is
     # always an unstaged change. The middle test keeps the chain
@@ -156,13 +153,23 @@ def push_async():
                " && git pull --rebase --quiet"
                " && git push --quiet")
 
+    # Never ask for a password. Without this, a folder set up for
+    # HTTPS stops and waits for a username in the middle of
+    # whatever the user is doing.
+    child_env = os.environ.copy()
+    child_env["GIT_TERMINAL_PROMPT"] = "0"
+    child_env["GIT_ASKPASS"] = "echo"
+    child_env["SSH_ASKPASS"] = "echo"
+
     try:
         with open(error_file, "w") as errors:
             subprocess.Popen(command,
                              shell=True,
                              cwd=folder,
+                             stdin=subprocess.DEVNULL,
                              stdout=errors,
-                             stderr=errors)
+                             stderr=errors,
+                             env=child_env)
     except OSError:
         # Nothing to do. The log is already written on disk.
         pass
