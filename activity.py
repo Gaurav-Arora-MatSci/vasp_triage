@@ -145,10 +145,15 @@ def push_async():
     # Pull first, so two machines pushing on the same day do not
     # reject each other. Each machine writes its own file, so a
     # rebase has nothing to conflict over.
-    command = ("git pull --rebase --quiet"
-               " && git add -A"
-               " && git commit -q -m \"vtriage log from "
-               + machine_name() + "\""
+    # Commit first, then pull, then push. A pull with unstaged
+    # changes in the folder is refused, and the new log entry is
+    # always an unstaged change. The middle test keeps the chain
+    # going when there is nothing new to commit.
+    command = ("git add -A"
+               " && (git diff --cached --quiet"
+               " || git commit -q -m \"vtriage log from "
+               + machine_name() + "\")"
+               " && git pull --rebase --quiet"
                " && git push --quiet")
 
     try:
