@@ -45,8 +45,56 @@ QUEUE_LIMIT = 15
 EOF
 ```
 
-Any name from `config.py` can go in there, including the activity
-log settings below.
+Any name from `config.py` can go in there.
+
+### One log across machines, optional
+
+Skip this unless you want every command you run, on every machine,
+recorded in one place. What the log looks like is described further
+down, under Everything you did, in one place.
+
+Make a new repository on GitHub, for example `vasp_triage_logs`.
+Set it to private, since the log holds your directory paths and job
+names. Tick the option to add a README so it is not empty.
+
+Copy its clone URL from the green Code button, then on each machine:
+
+```bash
+git clone git@github.com:YOU/vasp_triage_logs.git ~/vasp_triage_logs
+```
+
+Use the HTTPS URL with a personal access token if SSH is blocked.
+Then tell git who you are, or the background commit will fail
+silently:
+
+```bash
+cd ~/vasp_triage_logs
+git config user.name "Your Name"
+git config user.email "you@example.com"
+```
+
+Finally add these to `local_settings.py` in the vasp_triage folder:
+
+```python
+ACTIVITY_LOG_DIR = "~/vasp_triage_logs"
+MACHINE_NAME = "perlmutter"
+ACTIVITY_LOG_PUSH = True
+```
+
+Set `MACHINE_NAME` by hand on each machine, because a compute node
+reports its own node name. Set `ACTIVITY_LOG_PUSH = False` where the
+cluster blocks outbound git.
+
+Check it works:
+
+```bash
+cd /path/to/my/calculations
+vtriage status
+cat ~/vasp_triage_logs/MASTER.md
+cat ~/vasp_triage_logs/push_error.log
+```
+
+An empty `push_error.log` means the push went through.
 
 ## What it expects
 
@@ -274,50 +322,8 @@ silent, and the reason goes to `push_error.log`. A cluster with no
 outbound git keeps the log locally, and you push it by hand when you
 want.
 
-### Setting it up
-
-Make a new repository on GitHub, for example `vasp_triage_logs`.
-Set it to private, since the log holds your directory paths and job
-names. Tick the option to add a README so it is not empty.
-
-Copy its clone URL from the green Code button, then on each machine:
-
-```bash
-git clone git@github.com:YOU/vasp_triage_logs.git ~/vasp_triage_logs
-```
-
-Use the HTTPS URL with a personal access token if SSH is blocked.
-Then tell git who you are, or the background commit will fail
-silently:
-
-```bash
-cd ~/vasp_triage_logs
-git config user.name "Your Name"
-git config user.email "you@example.com"
-```
-
-Finally add these to `local_settings.py` in the vasp_triage folder:
-
-```python
-ACTIVITY_LOG_DIR = "~/vasp_triage_logs"
-MACHINE_NAME = "perlmutter"
-ACTIVITY_LOG_PUSH = True
-```
-
-Set `MACHINE_NAME` by hand on each machine, because a compute node
-reports its own node name. Set `ACTIVITY_LOG_PUSH = False` where the
-cluster blocks outbound git.
-
-Check it works:
-
-```bash
-cd /path/to/my/calculations
-vtriage status
-cat ~/vasp_triage_logs/MASTER.md
-cat ~/vasp_triage_logs/push_error.log
-```
-
-An empty `push_error.log` means the push went through.
+Setting it up is three steps, under One log across machines near the
+top of this file.
 
 ## How it differs from custodian, atomate2, and AiiDA
 
