@@ -410,7 +410,7 @@ def run_command(command, options):
 
 # Print the status summary and write it to the log.
 def show_status(root):
-    output = (agent.queue_summary_text() + "\n"
+    output = (agent.queue_summary_text(root) + "\n"
               + agent.folder_summary_text(root))
     print("")
     print(output)

@@ -89,7 +89,10 @@ def write_log(root, command_text, result_text, output_text):
 # Return None if squeue cannot be used.
 def get_job_states():
     user = getpass.getuser()
-    command = ["squeue", "-u", user, "-h", "-o", "%T"]
+
+    # Ask for the state and the working directory of each job, so
+    # the jobs started from this folder can be counted separately.
+    command = ["squeue", "-u", user, "-h", "-o", "%T|%Z"]
 
     try:
         result = subprocess.run(command,
@@ -102,35 +105,80 @@ def get_job_states():
     if result.returncode != 0:
         return None
 
-    states = {}
+    jobs = []
     for line in result.stdout.splitlines():
-        state = line.strip()
-        if state == "":
+        line = line.strip()
+        if line == "":
             continue
-        states[state] = states.get(state, 0) + 1
 
+        if "|" in line:
+            state, folder = line.split("|", 1)
+        else:
+            state, folder = line, ""
+
+        # realpath removes links, so paths compare correctly
+        folder = folder.strip()
+        if folder != "":
+            folder = os.path.realpath(folder)
+
+        jobs.append((state.strip(), folder))
+
+    return jobs
+
+
+# Return True if a job folder sits inside the root folder.
+def is_under(job_folder, root):
+    if job_folder == "":
+        return False
+
+    root = os.path.realpath(root)
+    if job_folder == root:
+        return True
+
+    return job_folder.startswith(root + os.sep)
+
+
+# Count how many jobs are in each state.
+# Return a dictionary such as {"RUNNING": 3, "PENDING": 12}.
+def count_states(jobs):
+    states = {}
+    for state, folder in jobs:
+        states[state] = states.get(state, 0) + 1
     return states
 
 
 # Build the text of the queue summary.
-# Return it as one block of text instead of printing it.
-def queue_summary_text():
-    states = get_job_states()
+# Jobs started from under root are counted on their own. The queue
+# limit stays over every job, because the cluster counts them all.
+# Return the text instead of printing it.
+def queue_summary_text(root=None):
+    jobs = get_job_states()
     lines = []
 
-    if states is None:
+    if jobs is None:
         return "Queue: squeue not available."
 
-    total = 0
-    for state in states:
-        total = total + states[state]
+    # Jobs that came from this folder
+    if root is not None:
+        mine = []
+        for state, folder in jobs:
+            if is_under(folder, root):
+                mine.append((state, folder))
 
-    lines.append("My jobs in the queue: " + str(total))
+        here = count_states(mine)
+        lines.append("Jobs from this folder: " + str(len(mine)))
+        for state in sorted(here):
+            lines.append("  " + state.lower() + ": " + str(here[state]))
+        lines.append("")
+
+    # Every job of mine, which is what the queue limit counts
+    states = count_states(jobs)
+    lines.append("All my jobs in the queue: " + str(len(jobs)))
     for state in sorted(states):
         lines.append("  " + state.lower() + ": " + str(states[state]))
 
     if config.QUEUE_LIMIT > 0:
-        free = config.QUEUE_LIMIT - total
+        free = config.QUEUE_LIMIT - len(jobs)
         if free < 0:
             free = 0
         lines.append("  free slots under limit "
@@ -246,7 +294,8 @@ if __name__ == "__main__":
             print("Error: not a directory: " + str(root))
             sys.exit(1)
 
-        output = queue_summary_text() + "\n" + folder_summary_text(root)
+        output = (queue_summary_text(root) + "\n"
+                  + folder_summary_text(root))
         print(output)
         write_log(root, command_text, "checked", output)
 
