@@ -45,6 +45,13 @@ def read_arguments():
                         help="also submit converged folders")
     parser.add_argument("--skip-zbrent-met", action="store_true",
                         help="skip ZBRENT crashes whose criteria look met")
+    parser.add_argument("--path", action="append", nargs="+",
+                        default=[],
+                        help="path patterns such as C11/2, C11/*, or"
+                             " C11/{2..10}; quote them in the shell")
+    parser.add_argument("--yes", action="store_true",
+                        help="submit without asking, only allowed with"
+                             " --status \"not submitted\"")
 
     args = parser.parse_args()
 
@@ -84,6 +91,12 @@ def read_arguments():
 
     if args.queue_limit < 0:
         print("Error: --queue-limit must be 0 or more.")
+        sys.exit(1)
+
+    # --yes skips the question, so allow it only for new jobs
+    if args.yes and args.status != config.STATUS_NOT_SUBMITTED:
+        print("Error: --yes works only with --status \""
+              + config.STATUS_NOT_SUBMITTED + "\".")
         sys.exit(1)
 
     return args
@@ -219,6 +232,7 @@ if __name__ == "__main__":
             allowed = free_slots
 
     dirs = edit.select_dirs(args.status, args.group, args.root, args.list)
+    dirs = edit.filter_by_paths(dirs, edit.flatten_patterns(args.path))
     if len(dirs) == 0:
         print("No folders selected.")
         sys.exit(0)
@@ -306,10 +320,13 @@ if __name__ == "__main__":
         print("Not submitted now because of the limits: "
               + str(left_over))
 
-    answer = input("Type yes to save each run and submit: ")
-    if answer.strip() != "yes":
-        print("Cancelled. Nothing submitted.")
-        sys.exit(0)
+    if args.yes:
+        print("Confirmed by --yes.")
+    else:
+        answer = input("Type yes to save each run and submit: ")
+        if answer.strip() != "yes":
+            print("Cancelled. Nothing submitted.")
+            sys.exit(0)
 
     # Step 3: save the old run, copy CONTCAR if needed, then submit
     submitted = 0

@@ -174,6 +174,7 @@ vtriage menu
 | `vtriage history` | archive finished runs, write progress.txt |
 | `vtriage edit` | change INCAR and KPOINTS, with a preview |
 | `vtriage submit` | sbatch, with limits and safety checks |
+| `vtriage auto` | one scheduled cycle: fill the queue, finish when done |
 | `vtriage menu` | all of the above, numbered |
 
 Pick folders by status, by group, or from a list file:
@@ -190,6 +191,93 @@ lines, and save those paths to a file that `--list` then reads. So
 finding the broken runs and acting on exactly those is two steps.
 
 Nothing is changed or submitted until you type yes.
+
+### Narrow the choice by path
+
+`--path` keeps only the folders whose last names match a pattern. It
+works with `edit`, `submit`, and `auto`, on top of `--status`,
+`--group`, or `--list`.
+
+| Pattern | Selects |
+|---|---|
+| `C11/2` | only the folder C11/2, not the folders below it |
+| `C11/*` | every folder directly inside C11 |
+| `C11/{2..10}` | C11/2 to C11/10 |
+| `C11/{2,5}` | C11/2 and C11/5 |
+| `/full/path/C11/2` | that exact folder |
+
+A star stands for one whole folder name and never crosses a slash.
+The pattern is matched against the end of each path, so `C11/2`
+also selects `other_branch/C11/2` if one exists. Add a parent name to
+tell them apart. The preview always lists what was matched, and any
+pattern that matched nothing is named, since that is usually a typo.
+
+```bash
+vtriage submit --status "not submitted" --path "C11/{2..10}" "C44/*"
+vtriage edit --group failed --path "2-MEC/strain_calcs/*/*" --set NELM=200
+```
+
+Quote patterns on the command line, or the shell expands them first.
+In the menu, type them without quotes, separated by spaces.
+
+## Run it unattended: the auto agent
+
+`vtriage auto` runs one cycle. Put it on a schedule, such as
+scrontab, and it works through a whole campaign on its own:
+
+1. Submits folders with status `not submitted`, up to `AUTO_BATCH`
+   per cycle and never more than `AUTO_QUEUE_LIMIT` of your jobs in
+   the queue.
+2. Waits while any of the campaign's jobs are still queued.
+3. When nothing is left to submit and nothing is queued, it writes
+   the final report, writes `AUTO_DONE` with the counts and every
+   folder that needs a look, and sends one email.
+4. Every later cycle sees `AUTO_DONE` and exits at once.
+
+It never resubmits a crashed or unconverged folder. Those are listed
+in `AUTO_DONE` for you to fix. This is the one place a submit runs
+without a typed yes, so `submit --yes` is refused for any status
+other than `not submitted`.
+
+The email comes from a one minute Slurm job with `--mail-type=END`,
+because many clusters have no working `mail` command. Its job name
+carries the counts, for example `vtriage_done_C11_40ok_5look`, so
+they show in the subject line.
+
+Settings go in `local_settings.py`:
+
+```python
+AUTO_BATCH = 20
+AUTO_QUEUE_LIMIT = 30
+AUTO_EMAIL = "you@example.com"
+AUTO_EMAIL_SBATCH_OPTIONS = ["-A", "m0000", "-q", "shared", "-C", "cpu",
+                             "-n", "1", "-c", "2", "-t", "1"]
+```
+
+Jobs whose name starts with `vtriage_` are helpers and are not
+counted against the queue limit. Name the scheduled job
+`vtriage_auto`. A lock file stops two cycles from submitting the same
+folders when one runs long. A log entry is written only when a cycle
+submits or finishes.
+
+Example scrontab entry on NERSC Perlmutter, every 5 hours (times are
+UTC):
+
+```
+#SCRON -q cron
+#SCRON -A m0000
+#SCRON -t 00:10:00
+#SCRON -J vtriage_auto
+#SCRON -o /path/to/vtriage_auto.log
+#SCRON --open-mode=append
+7 */5 * * * $HOME/vasp_triage/vtriage auto --root /path/to/campaign
+```
+
+Use the full path to `vtriage`, since scrontab does not read
+`~/.bashrc`. Check the queue name on your cluster. Test with
+`vtriage auto` by hand on a small copied tree first. After a
+maintenance, NERSC comments out scrontab entries, so remove the
+comment marks to start it again.
 
 ## Status rules
 
@@ -360,6 +448,7 @@ report.py     grouped CSV files and report.md
 history.py    archive runs, write progress.txt
 edit.py       change INCAR and KPOINTS
 resubmit.py   sbatch with checks and limits
+auto.py       one cycle of the scheduled auto agent
 agent.py      entry point, command log
 menu.py       numbered menu
 activity.py   the one place log across machines, optional

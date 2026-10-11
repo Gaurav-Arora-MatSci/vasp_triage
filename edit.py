@@ -4,6 +4,7 @@
 # Each folder is saved with history.py before it is changed.
 
 import argparse
+import fnmatch
 import os
 import sys
 
@@ -11,6 +12,7 @@ import classify
 import config
 import history
 import parse
+import scan
 
 
 # Return every status label used by the tool.
@@ -75,6 +77,138 @@ def select_dirs(status, group, root, list_path):
             selected.append(record["path"])
 
     return selected
+
+
+# Turn the --path option into one flat list of patterns.
+# argparse gives a list of lists, one list per --path.
+def flatten_patterns(path_lists):
+    patterns = []
+    for group in path_lists:
+        for pattern in group:
+            patterns.append(pattern)
+    return patterns
+
+
+# Expand braces in a path pattern, the way bash does.
+# C11/{2..4} gives C11/2, C11/3, C11/4.
+# C11/{2,5} gives C11/2 and C11/5.
+# A pattern without braces comes back as a list of one.
+def expand_braces(pattern):
+    start = pattern.find("{")
+    if start == -1:
+        return [pattern]
+    end = pattern.find("}", start + 1)
+    if end == -1:
+        return [pattern]
+
+    head = pattern[:start]
+    inside = pattern[start + 1:end]
+    tail = pattern[end + 1:]
+
+    options = []
+    if ".." in inside:
+        first, last = inside.split("..", 1)
+        if first.isdigit() and last.isdigit():
+            # Keep leading zeros, so {01..10} gives 01, 02, ... 10
+            width = 0
+            if len(first) > 1 and first.startswith("0"):
+                width = len(first)
+
+            step = 1
+            if int(last) < int(first):
+                step = -1
+
+            for number in range(int(first), int(last) + step, step):
+                options.append(str(number).zfill(width))
+    elif "," in inside:
+        options = inside.split(",")
+
+    # Not a range and not a list: keep the braces as plain text
+    if len(options) == 0:
+        options = ["{" + inside + "}"]
+
+    expanded = []
+    for option in options:
+        for rest in expand_braces(tail):
+            expanded.append(head + option + rest)
+    return expanded
+
+
+# Expand the braces in every pattern.
+def expand_all(patterns):
+    expanded = []
+    for pattern in patterns:
+        for item in expand_braces(pattern):
+            expanded.append(item)
+    return expanded
+
+
+# Return True if a folder matches one path pattern.
+# The pattern is compared with the last folder names of the path,
+# one whole name at a time. A star stands for any one name and never
+# crosses a slash. C11/2 matches .../C11/2 only, not folders below it.
+# A pattern that starts with / must match the full path.
+def path_matches(calc_dir, pattern):
+    path_parts = os.path.abspath(calc_dir).strip(os.sep).split(os.sep)
+
+    pattern_parts = []
+    for part in pattern.split("/"):
+        if part != "" and part != ".":
+            pattern_parts.append(part)
+
+    if len(pattern_parts) == 0:
+        return False
+
+    if pattern.startswith("/"):
+        if len(pattern_parts) != len(path_parts):
+            return False
+        compare = path_parts
+    else:
+        if len(pattern_parts) > len(path_parts):
+            return False
+        compare = path_parts[len(path_parts) - len(pattern_parts):]
+
+    for index in range(len(pattern_parts)):
+        if not fnmatch.fnmatchcase(compare[index], pattern_parts[index]):
+            return False
+
+    return True
+
+
+# Return True if a folder matches any of the expanded patterns.
+def matches_any(calc_dir, expanded):
+    for pattern in expanded:
+        if path_matches(calc_dir, pattern):
+            return True
+    return False
+
+
+# Keep only the folders that match at least one path pattern.
+# With no patterns, every folder is kept.
+def filter_by_paths(dirs, patterns):
+    if len(patterns) == 0:
+        return dirs
+
+    expanded = expand_all(patterns)
+
+    kept = []
+    for calc_dir in dirs:
+        if matches_any(calc_dir, expanded):
+            kept.append(calc_dir)
+
+    # Name any pattern that matched nothing, it is often a typo
+    for pattern in expanded:
+        found = False
+        for calc_dir in dirs:
+            if path_matches(calc_dir, pattern):
+                found = True
+                break
+        if not found:
+            print("No selected folder matches: " + pattern)
+
+    print("Path filter kept " + str(len(kept)) + " of "
+          + str(len(dirs)) + " folders.")
+    return kept
 
 
 # Turn items like "EDIFF=1E-7" into pairs like ("EDIFF", "1E-7").
@@ -240,6 +374,10 @@ def read_arguments():
                         help="text file with one folder path per line")
     parser.add_argument("--where", action="append", default=[],
                         help="TAG=VALUE, edit only folders that match")
+    parser.add_argument("--path", action="append", nargs="+",
+                        default=[],
+                        help="path patterns such as C11/2, C11/*, or"
+                             " C11/{2..10}; quote them in the shell")
     parser.add_argument("--set", action="append", default=[],
                         help="TAG=VALUE, can be used many times")
     parser.add_argument("--remove", action="append", default=[],
@@ -323,6 +461,7 @@ if __name__ == "__main__":
         new_mesh = " ".join(args.kpoints[1:])
 
     dirs = select_dirs(args.status, args.group, args.root, args.list)
+    dirs = filter_by_paths(dirs, flatten_patterns(args.path))
     if len(dirs) == 0:
         print("No folders selected.")
         sys.exit(0)

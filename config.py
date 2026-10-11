@@ -1,4 +1,3 @@
-
 # config.py
 # Settings shared by all modules.
 # Change values here, not inside the other files.
@@ -226,6 +225,41 @@ MACHINE_NAME = ""
 
 # Send the log folder to its git remote after each command.
 ACTIVITY_LOG_PUSH = False
+
+
+# ---------------------------------------------------------------
+# Auto agent (auto.py), run on a schedule such as scrontab
+# ---------------------------------------------------------------
+# New jobs submitted in one auto run
+AUTO_BATCH = 20
+
+# My jobs allowed in the queue at once, running plus pending.
+# Helper jobs (see AUTO_HELPER_PREFIX) are not counted.
+# Set to 0 to turn this limit off.
+AUTO_QUEUE_LIMIT = 30
+
+# Jobs whose name starts with this are helpers, not calculations:
+# the scheduled job itself and the email job. Name the scrontab
+# job vtriage_auto so it is not counted against the queue limit.
+AUTO_HELPER_PREFIX = "vtriage_"
+
+# Address for the email sent when the campaign is done.
+# Empty means no email.
+AUTO_EMAIL = ""
+
+# Extra sbatch options for the one minute email job, such as the
+# account, queue, and node type. Example for NERSC Perlmutter:
+# ["-A", "m4349", "-q", "shared", "-C", "cpu", "-n", "1", "-c", "2",
+#  "-t", "1"]
+AUTO_EMAIL_SBATCH_OPTIONS = []
+
+# Files the auto agent writes in the root folder
+AUTO_DONE_NAME = "AUTO_DONE"
+AUTO_LOCK_NAME = "auto.lock"
+
+# A lock older than this is left over from a killed run and is
+# replaced. In minutes.
+AUTO_LOCK_MINUTES = 60
 
 
 

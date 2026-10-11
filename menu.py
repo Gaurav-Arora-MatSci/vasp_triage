@@ -114,6 +114,29 @@ def ask_selection(root):
     return ["--status", picked, "--root", root]
 
 
+# Ask for path patterns that narrow the folders.
+# Several patterns go on one line, with spaces between them.
+# No quotes are needed here, unlike on the command line.
+# Return options such as ["--path=C11/2", "--path=C11/3"], or None.
+def ask_path_patterns():
+    print("")
+    print("Path patterns, matched against the last folder names:")
+    print("  C11/2        only the folder C11/2")
+    print("  C11/*        every folder directly inside C11")
+    print("  C11/{2..10}  C11/2 to C11/10")
+    print("  C11/{2,5}    C11/2 and C11/5")
+    print("Separate several patterns with spaces.")
+
+    text = ask_text("Patterns: ")
+    if text is None:
+        return None
+
+    options = []
+    for pattern in text.split():
+        options.append("--path=" + pattern)
+    return options
+
+
 # Ask for the options of the edit command.
 # Return the full option list, or None.
 def ask_edit_options(root):
@@ -121,6 +144,7 @@ def ask_edit_options(root):
     if options is None:
         return None
 
+    paths = []
     changes = []
 
     while True:
@@ -128,6 +152,7 @@ def ask_edit_options(root):
                    ("remove a tag", "remove"),
                    ("rewrite KPOINTS", "kpoints"),
                    ("only folders where a tag has a value", "where"),
+                   ("only folders matching a path pattern", "path"),
                    ("done, show me the preview", "done")]
 
         picked = ask_choice("What should be changed?", choices)
@@ -176,13 +201,19 @@ def ask_edit_options(root):
                 continue
             changes = changes + ["--where", tag.upper() + "=" + value]
 
-        print("So far: " + " ".join(changes))
+        elif picked == "path":
+            patterns = ask_path_patterns()
+            if patterns is None:
+                continue
+            paths = paths + patterns
+
+        print("So far: " + " ".join(paths + changes))
 
     if len(changes) == 0:
         print("No change chosen.")
         return None
 
-    return options + changes
+    return options + paths + changes
 
 
 # Ask for the extra options of the submit command.
@@ -194,6 +225,7 @@ def ask_submit_options(root):
 
     while True:
         choices = [("submit now", "done"),
+                   ("only folders matching a path pattern", "path"),
                    ("set the number of jobs per run", "max"),
                    ("set the queue limit", "queue"),
                    ("also submit converged folders", "force"),
@@ -206,7 +238,13 @@ def ask_submit_options(root):
         if picked == "done":
             break
 
-        if picked == "max":
+        if picked == "path":
+            patterns = ask_path_patterns()
+            if patterns is None:
+                continue
+            options = options + patterns
+
+        elif picked == "max":
             value = ask_text("Largest number of jobs per run: ")
             if value is None or not value.isdigit():
                 print("Give a whole number.")
