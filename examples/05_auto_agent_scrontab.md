@@ -350,6 +350,10 @@ tail -f /scratch/user/vt_test/auto_cron.log
 Each cycle adds one summary line, plus the submit output when it
 acts. Ctrl+C stops watching; the schedule keeps running.
 
+To get these steps and the block written for a given folder in plain
+English, see Running automatically through Claude in
+06_llm_vclaude.md.
+
 ## Stop the schedule
 
 When AUTO_DONE is written, the job keeps waking up and exiting until

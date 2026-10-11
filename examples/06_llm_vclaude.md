@@ -217,6 +217,34 @@ I can only search within `/scratch/user/vt_test`, and there's no `C22` folder th
 Cost: 0.0602 USD
 ```
 
+## Running automatically through Claude
+
+Claude does not install scrontab entries. scrontab -e opens an
+editor that Claude cannot use, and the other way, scrontab FILE,
+replaces your whole table and would delete any other entries. Once
+installed, an entry submits jobs without you, so that step stays with
+you.
+
+With the Running automatically section of CLAUDE_example.md in
+~/.claude/CLAUDE.md, a request such as one of these:
+
+```
+vclaude "run this folder automatically"
+vclaude "set up scrontab for the auto agent every 5 hours with batch 20 and queue limit 30"
+vclaude "run only the C11 folders automatically every hour"
+```
+
+returns the numbered steps with your folder filled in: check the
+email settings, run one cycle by hand, open scrontab -e and paste a
+seven line block, check with scrontab -l and squeue, watch the log,
+and remove the block when AUTO_DONE appears. The block has the shape
+shown in 05_auto_agent_scrontab.md, with your batch, limit, interval,
+and path patterns. Replace $HOME in it with the output of
+echo $HOME, and YOUR_ACCOUNT with your project if Claude did not ask.
+
+Check the block before pasting it, the same way you read a preview
+before typing yes.
+
 More requests that work well:
 
 ```

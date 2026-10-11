@@ -142,5 +142,11 @@ or add --allowedTools "Bash(vtriage status)".
 The run was stopped before Claude answered. The vclaude template
 prints a short message instead.
 
+**Claude will not set up scrontab.**
+By design. It prints the steps and the block; you paste it with
+scrontab -e. If it gives no steps, ~/.claude/CLAUDE.md lacks the
+Running automatically section; copy templates/CLAUDE_example.md
+again.
+
 **curl to api.anthropic.com resets.**
 The cluster blocks the API. Use vtriage without the LLM there.
