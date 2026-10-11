@@ -1,3 +1,4 @@
+
 # config.py
 # Settings shared by all modules.
 # Change values here, not inside the other files.
@@ -249,7 +250,7 @@ AUTO_EMAIL = ""
 
 # Extra sbatch options for the one minute email job, such as the
 # account, queue, and node type. Example for NERSC Perlmutter:
-# ["-A", "m4349", "-q", "shared", "-C", "cpu", "-n", "1", "-c", "2",
+# ["-A", "YOUR_ACCOUNT", "-q", "shared", "-C", "cpu", "-n", "1", "-c", "2",
 #  "-t", "1"]
 AUTO_EMAIL_SBATCH_OPTIONS = []
 

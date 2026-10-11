@@ -165,6 +165,11 @@ Every command takes the current folder as its root, so you can just
 vtriage menu
 ```
 
+Worked examples of every command, with real output, are in
+[examples](examples/README.md): setup, status and reports, choosing
+folders by path, editing inputs, the scheduled auto agent, and plain
+English use through Claude Code.
+
 ## The commands
 
 | Command | Does |
@@ -428,6 +433,26 @@ without your yes.
 The two mix perfectly well: custodian fixing runs while they happen,
 vasp_triage recording and triaging what came out.
 
+## Plain English through an LLM, optional
+
+vasp_triage makes no network calls and has no LLM inside it. On a
+cluster that can reach the Anthropic API, Claude Code can sit on top:
+
+```
+$ vclaude "submit only C11 folders 2 to 4 that were not submitted"
+Run this command:
+
+    vtriage submit --status "not submitted" --path "C11/{2..4}"
+
+Cost: 0.0150 USD
+```
+
+Claude may run only `vtriage status` and `vtriage report`. For
+anything that edits files or submits jobs, it prints the command for
+you to run, and vtriage still waits for your yes. Setup, the
+instructions file, and the wrapper are in
+[examples/06_llm_vclaude.md](examples/06_llm_vclaude.md).
+
 ## Limits
 
 - It does not supervise a running job, so it cannot fix errors mid
@@ -453,6 +478,7 @@ agent.py      entry point, command log
 menu.py       numbered menu
 activity.py   the one place log across machines, optional
 vtriage       launcher
+examples/     worked examples and ready to copy templates
 ```
 
 Every file is plain, readable Python with no dependencies. Change it

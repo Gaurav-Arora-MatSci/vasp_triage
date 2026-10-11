@@ -1,0 +1,27 @@
+# scrontab entries for the vasp_triage auto agent on NERSC Perlmutter.
+# Open your table with:  scrontab -e
+# Paste ONE block, replace YOUR_ACCOUNT and the paths, save, and check
+# with:  scrontab -l
+# Times are UTC. Use full paths: scrontab does not read ~/.bashrc.
+# Keep -J vtriage_auto so the helper job is not counted in the queue
+# limit. Remove the block with scrontab -e when AUTO_DONE is written.
+
+# ----- Test: every 5 minutes, small batches -----
+#SCRON -q cron
+#SCRON -A YOUR_ACCOUNT
+#SCRON -t 00:05:00
+#SCRON -J vtriage_auto
+#SCRON -o /scratch/user/vt_test/auto_cron.log
+#SCRON --open-mode=append
+*/5 * * * * /global/homes/u/user/vasp_triage/vtriage auto --root /scratch/user/vt_test --batch 3 --queue-limit 6
+
+# ----- Production: every 5 hours at minute 7 -----
+# Uses AUTO_BATCH and AUTO_QUEUE_LIMIT from local_settings.py.
+# Add --path "C11/*" to run only part of a campaign.
+#SCRON -q cron
+#SCRON -A YOUR_ACCOUNT
+#SCRON -t 00:10:00
+#SCRON -J vtriage_auto
+#SCRON -o /pscratch/sd/u/user/campaign/auto_cron.log
+#SCRON --open-mode=append
+7 */5 * * * /global/homes/u/user/vasp_triage/vtriage auto --root /pscratch/sd/u/user/campaign
