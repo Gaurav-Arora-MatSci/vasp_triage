@@ -13,6 +13,7 @@ the file you need.
 | [05_auto_agent_scrontab.md](05_auto_agent_scrontab.md) | let vasp_triage submit a whole campaign on a schedule and email you at the end |
 | [06_llm_vclaude.md](06_llm_vclaude.md) | ask in plain English through Claude Code |
 | [07_troubleshooting.md](07_troubleshooting.md) | every problem met so far and its fix |
+| [08_schedule_plain_english.md](08_schedule_plain_english.md) | start a whole campaign with one sentence, NERSC Perlmutter only |
 
 Ready to copy files are in [templates](templates):
 
@@ -23,7 +24,7 @@ Ready to copy files are in [templates](templates):
 | make_test_tree.sh | builds the 10 folder test tree used in these examples |
 | scrontab_example.txt | scheduled auto agent entries for NERSC |
 | CLAUDE_example.md | instructions file for Claude Code |
-| vclaude.sh | the plain English wrapper |
+| vclaude.sh | the plain English wrappers, vclaude and vclaude_yes |
 
 ## Where the output comes from
 
@@ -31,6 +32,8 @@ Two sources, both real runs of the code:
 
 1. NERSC Perlmutter, 11 October 2026: the LLM answers and costs, the
    scrontab screens, the email subject, and the auto agent finish.
+   NERSC Perlmutter, 12 October 2026: everything in
+   08_schedule_plain_english.md.
 2. A local run of the same code with stand in sbatch and squeue
    scripts, on the same 10 folder layout: everything else. The
    behaviour of vasp_triage is the same; only the job IDs and the

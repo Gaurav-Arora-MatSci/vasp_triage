@@ -9,6 +9,8 @@
 #   4. when nothing is left to submit and no folder is in the queue,
 #      writes the final report, writes AUTO_DONE with the folders that
 #      need a look, and sends one email through a one minute Slurm job
+##   5. after the email, takes its own entry out of scrontab, if
+#      vtriage schedule put one there
 #
 # Only folders with status not submitted are ever submitted.
 # Crashed or unconverged folders are listed, never resubmitted.
@@ -289,6 +291,14 @@ def finish(root, patterns, records):
     print(email_line)
     agent.write_log(root, "auto finish", "campaign done",
                     text + "\n" + email_line)
+
+    # Last step, because removing the entry may end this scrontab job.
+    # schedule.py imports this file, so it is imported here.
+    import schedule
+    schedule_line = schedule.remove_entry(root)
+    with open(done_path, "a") as f:
+        f.write(schedule_line + "\n")
+    print(schedule_line)
 
 
 # Run one cycle. Return the exit code.

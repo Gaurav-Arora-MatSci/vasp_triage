@@ -180,6 +180,9 @@ English use through Claude Code.
 | `vtriage edit` | change INCAR and KPOINTS, with a preview |
 | `vtriage submit` | sbatch, with limits and safety checks |
 | `vtriage auto` | one scheduled cycle: fill the queue, finish when done |
+| `vtriage schedule` | show the scrontab plan for the auto agent, NERSC only |
+| `vtriage confirm` | install that plan and run the first cycle |
+| `vtriage unschedule` | take the entry out of scrontab |
 | `vtriage menu` | all of the above, numbered |
 
 Pick folders by status, by group, or from a list file:
@@ -283,6 +286,28 @@ Use the full path to `vtriage`, since scrontab does not read
 `vtriage auto` by hand on a small copied tree first. After a
 maintenance, NERSC comments out scrontab entries, so remove the
 comment marks to start it again.
+
+### Let vasp_triage write the entry (NERSC Perlmutter only)
+
+`vtriage schedule` builds this block for the current folder and
+saves it as a plan. `vtriage confirm` adds it to your table, keeps
+every other entry, and runs the first cycle at once. When the
+campaign is done, the auto agent sends the email and removes its own
+entry.
+
+```bash
+vtriage schedule --every 20m --batch 10
+vtriage confirm
+```
+
+With Claude Code, one sentence does the same:
+
+```bash
+vclaude "run all jobs in this folder once, check every 20 minutes"
+vclaude_yes
+```
+
+See [examples/08_schedule_plain_english.md](examples/08_schedule_plain_english.md).
 
 ## Status rules
 
@@ -474,6 +499,7 @@ history.py    archive runs, write progress.txt
 edit.py       change INCAR and KPOINTS
 resubmit.py   sbatch with checks and limits
 auto.py       one cycle of the scheduled auto agent
+schedule.py   puts the auto agent on scrontab and takes it off, NERSC only
 agent.py      entry point, command log
 menu.py       numbered menu
 activity.py   the one place log across machines, optional

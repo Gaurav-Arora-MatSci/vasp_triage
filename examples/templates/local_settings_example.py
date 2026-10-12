@@ -34,6 +34,16 @@ AUTO_EMAIL_SBATCH_OPTIONS = ["-A", "YOUR_ACCOUNT", "-q", "shared",
                              "-t", "1"]
 
 # ---------------------------------------------------------------
+# Schedule (vtriage schedule), NERSC Perlmutter only
+# ---------------------------------------------------------------
+# NERSC account for the scrontab job. Empty means use the -A value
+# in AUTO_EMAIL_SBATCH_OPTIONS.
+SCHEDULE_ACCOUNT = ""
+
+# Time between cycles when --every is not given, such as 20m or 5h
+SCHEDULE_EVERY = "5h"
+
+# ---------------------------------------------------------------
 # Shared activity log across machines (optional)
 # ---------------------------------------------------------------
 # Folder of a private git repository that collects every command

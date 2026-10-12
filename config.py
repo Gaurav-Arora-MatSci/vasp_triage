@@ -263,6 +263,36 @@ AUTO_LOCK_NAME = "auto.lock"
 AUTO_LOCK_MINUTES = 60
 
 
+# ---------------------------------------------------------------
+# Schedule (schedule.py), puts the auto agent on scrontab
+# Written for NERSC Perlmutter.
+# ---------------------------------------------------------------
+# NERSC account for the scrontab job. Empty means use the -A value
+# in AUTO_EMAIL_SBATCH_OPTIONS.
+SCHEDULE_ACCOUNT = ""
+
+# Queue and time limit of the scrontab job
+SCHEDULE_QOS = "cron"
+SCHEDULE_TIME = "00:10:00"
+
+# Time between cycles when --every is not given, such as 20m or 5h
+SCHEDULE_EVERY = "5h"
+
+# Shortest interval allowed, in minutes
+SCHEDULE_MIN_MINUTES = 5
+
+# Minute of the hour used for intervals given in hours.
+# 7 avoids the busy mark at minute 0.
+SCHEDULE_MINUTE = 7
+
+# A plan older than this cannot be confirmed. In minutes.
+SCHEDULE_PLAN_MINUTES = 60
+
+# Files the schedule writes in the root folder
+SCHEDULE_PLAN_NAME = "schedule_plan.json"
+SCHEDULE_LOG_NAME = "auto_cron.log"
+
+
 
 # ---------------------------------------------------------------
 # Local settings, one file per machine

@@ -8,6 +8,12 @@
 #   edit      change INCAR and KPOINTS, calls edit.py
 #   submit    submit folders with sbatch, calls resubmit.py
 #   auto      one cycle of the auto agent, calls auto.py
+#   schedule  show the scrontab plan for the auto agent, calls
+#             schedule.py plan; installs nothing
+#   confirm   install the saved plan and run one cycle, calls
+#             schedule.py confirm
+#   unschedule  take the entry out of scrontab, calls
+#             schedule.py remove
 #
 # Every command is written to agent_log.txt in the root folder,
 # together with the output it printed.
@@ -269,6 +275,9 @@ def print_usage():
     print("  vtriage edit [options]")
     print("  vtriage submit [options]")
     print("  vtriage auto [options]")
+    print("  vtriage schedule [options]")
+    print("  vtriage confirm [--root root]")
+    print("  vtriage unschedule [--root root]")
     print("")
     print("Without a root, the folder you are standing in is used.")
     print("Options for edit and submit are the same as edit.py"
@@ -346,6 +355,22 @@ if __name__ == "__main__":
         # auto.py writes its own log entries, only when it acts, so a
         # run every few minutes does not fill agent_log.txt
         code, output = run_script("auto.py", rest)
+        sys.exit(code)
+
+    elif command in ["schedule", "confirm", "unschedule"]:
+        actions = {"schedule": "plan",
+                   "confirm": "confirm",
+                   "unschedule": "remove"}
+
+        code, output = run_script("schedule.py",
+                                  [actions[command]] + rest)
+
+        if code == 0:
+            result = "finished"
+        else:
+            result = "failed, exit code " + str(code)
+
+        write_log(root, command_text, result, output)
         sys.exit(code)
 
     else:

@@ -5,8 +5,10 @@ Do not read OUTCAR, OSZICAR, or slurm files yourself for status.
 For details on a folder, run vtriage report and read report.md.
 Keep summaries short: counts by status, then the Needs a look list.
 
-Never run vtriage edit, submit, history, or auto yourself.
-Never run scrontab yourself.
+Never run vtriage edit, submit, history, auto, or unschedule
+yourself. Never run scrontab yourself.
+Run vtriage confirm only when the user's latest message is a yes to
+a schedule plan you showed in your previous answer.
 Print the exact command for the user to run instead.
 
 Command syntax:
@@ -23,40 +25,32 @@ vtriage submit --group failed --max 10
 vtriage edit --status "not submitted" --path "C12/*" --set NELM=120
 vtriage edit --group not_converged --set ALGO=Normal --set NELM=200
 
-Running automatically:
-When the user asks to run automatically, to use the auto agent, or
-to set up scrontab, print these numbered steps with the real folder
-path filled in. Use the batch, queue limit, interval, and path
-patterns the user asked for; otherwise leave out --batch and
---queue-limit so local_settings.py decides, and use every 5 hours.
-The auto agent submits only not submitted folders and stops by
-itself when the campaign is done.
+Running automatically (NERSC Perlmutter only):
+When the user asks to run all jobs in a folder, to run
+automatically, or to check on an interval, run vtriage schedule in
+that folder. It only shows a plan and installs nothing. Then show
+the plan and tell the user to run vclaude_yes to install it.
 
-1. Check AUTO_EMAIL and AUTO_EMAIL_SBATCH_OPTIONS in
-   ~/vasp_triage/local_settings.py.
-2. Run one cycle by hand and read the output:
-   vtriage auto --root FOLDER
-3. Run scrontab -e, go to the end (G, then o in vi), paste the
-   block below, press Esc, type :wq.
-4. Check it with scrontab -l and squeue -u $USER. The vtriage_auto
-   job pending with BeginTime is normal.
-5. Watch it with tail -f FOLDER/auto_cron.log.
-6. When AUTO_DONE appears and the email arrives, run scrontab -e
-   and delete the seven lines.
+vtriage schedule options:
+--every: time between checks, a whole number then m or h, such as
+20m or 5h. Minutes from 5 to 60, hours from 1 to 24. Default 5h.
+--batch N and --queue-limit N: only when the user gives them;
+otherwise local_settings.py decides.
+--path: patterns, as for submit and edit.
 
-Block for step 3 (times are UTC; ACCOUNT is the user's NERSC
-project, ask if unknown):
-#SCRON -q cron
-#SCRON -A ACCOUNT
-#SCRON -t 00:10:00
-#SCRON -J vtriage_auto
-#SCRON -o FOLDER/auto_cron.log
-#SCRON --open-mode=append
-7 */5 * * * $HOME/vasp_triage/vtriage auto --root FOLDER
+Turn the user's words into --every: every 20 minutes is 20m, every
+2 hours is 2h, hourly is 1h, daily is 24h. If the interval cannot be
+written this way, such as every 90 minutes, run nothing, say so, and
+offer the nearest valid values, such as 1h or 2h.
 
-Interval lines: every 5 minutes is */5 * * * *, every hour is
-7 * * * *, every 5 hours is 7 */5 * * *. Tell the user to replace
-$HOME with the output of echo $HOME, since scrontab does not read
-~/.bashrc.
-Remind the user that NERSC comments out entries before maintenance,
-and that auto never resubmits crashed or unconverged folders.
+Example:
+vtriage schedule --every 20m --batch 10 --path "C11/*"
+
+On confirm, the entry is installed and one cycle runs at once. The
+auto agent submits only not submitted folders, never resubmits
+crashed or unconverged folders, sends the email when done, and
+removes its own scrontab entry. To stop it early, the user runs
+vtriage unschedule in that folder.
+If schedule fails because scrontab is missing or disabled, say that
+scheduling works only on Perlmutter, and give the hand command
+vtriage auto --root FOLDER instead.
