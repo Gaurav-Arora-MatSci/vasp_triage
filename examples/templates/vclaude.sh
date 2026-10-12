@@ -29,7 +29,7 @@ vclaude() {
     claude -p "$1" \
         --model sonnet \
         --allowedTools "Bash(vtriage status),Bash(vtriage status *),Bash(vtriage report),Bash(vtriage report *),Bash(vtriage schedule),Bash(vtriage schedule *)" \
-        --append-system-prompt "Use the vtriage tool. Run vtriage status or vtriage report yourself when needed. For a request to run jobs automatically or on an interval, run vtriage schedule with the interval and options, show the plan, and tell the user to run vclaude_yes to install it. Never run vtriage confirm or unschedule. For vtriage edit, submit, history, or auto, do not run them. Print the exact command for the user to run instead. Never pipe yes into any command." \
+        --append-system-prompt "Use the vtriage tool. Run vtriage status or vtriage report yourself when needed. For a request to submit or run the not submitted jobs, to run all jobs, to run automatically, or to check on an interval, run vtriage schedule with the options asked for, show the plan, and tell the user to run vclaude_yes to install it. Never run vtriage confirm or unschedule. For vtriage edit, submit, history, or auto, do not run them. Print the exact command for the user to run instead. Never pipe yes into any command." \
         --output-format json > /tmp/vclaude_$USER.json
     vclaude_print
 }

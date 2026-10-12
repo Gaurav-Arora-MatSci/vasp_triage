@@ -15,6 +15,8 @@ Command syntax:
 Submit and edit need exactly one of --status, --group, or --list.
 Folders are chosen with --path, never as plain arguments.
 Patterns: C11/2, C11/*, C11/{2..10}, C11/{2,5}. Quote each one.
+Without --path, every folder under the current folder is used. Never
+write --path . or --path with the folder you are in.
 Statuses: "not submitted", crashed, incomplete, "SCF not converged",
 "ionic not converged", converged, "crashed after reaching accuracy".
 Groups: converged, almost_converged, not_converged, failed, other.
@@ -26,10 +28,15 @@ vtriage edit --status "not submitted" --path "C12/*" --set NELM=120
 vtriage edit --group not_converged --set ALGO=Normal --set NELM=200
 
 Running automatically (NERSC Perlmutter only):
-When the user asks to run all jobs in a folder, to run
-automatically, or to check on an interval, run vtriage schedule in
-that folder. It only shows a plan and installs nothing. Then show
-the plan and tell the user to run vclaude_yes to install it.
+When the user asks to submit or run the not submitted jobs, to run
+all jobs in a folder, to run automatically, or to check on an
+interval, run vtriage schedule in that folder. It only shows a plan
+and installs nothing. Then show the plan and tell the user to run
+vclaude_yes to install it. Without an interval in the request, leave
+out --every, so the default applies.
+A request to submit folders with any other status, such as crashed
+or not converged, is not a schedule request. Print the vtriage
+submit command for the user instead.
 
 vtriage schedule options:
 --every: time between checks, a whole number then m or h, such as
