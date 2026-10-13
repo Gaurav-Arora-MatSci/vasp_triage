@@ -227,6 +227,15 @@ MACHINE_NAME = ""
 # Send the log folder to its git remote after each command.
 ACTIVITY_LOG_PUSH = False
 
+# Inside a Slurm job, such as a scrontab cycle, the push runs in the
+# foreground, because Slurm stops background work when the job ends.
+# Longest wait for that push, in seconds.
+ACTIVITY_PUSH_WAIT_SECONDS = 120
+
+# A git lock file older than this is left over from a stopped push
+# and is removed before the next push. In minutes.
+ACTIVITY_STALE_LOCK_MINUTES = 30
+
 
 # ---------------------------------------------------------------
 # Auto agent (auto.py), run on a schedule such as scrontab

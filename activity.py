@@ -14,7 +14,9 @@
 
 import datetime
 import os
+import signal
 import subprocess
+import time
 
 import config
 
@@ -128,9 +130,32 @@ def rebuild_master():
         f.write("\n".join(parts) + "\n")
 
 
+# Remove git's lock file if it is older than
+# ACTIVITY_STALE_LOCK_MINUTES. A push stopped halfway, for example by
+# Slurm at the end of a job, leaves it behind, and every later push
+# then fails. A real git command holds the lock for seconds only.
+def clear_stale_lock(folder):
+    lock_path = os.path.join(folder, ".git", "index.lock")
+    if not os.path.isfile(lock_path):
+        return
+
+    age = time.time() - os.path.getmtime(lock_path)
+    if age < config.ACTIVITY_STALE_LOCK_MINUTES * 60:
+        return
+
+    try:
+        os.remove(lock_path)
+    except OSError:
+        pass
+
+
 # Send the log folder to its git remote, if it is a git repository.
-# This runs in the background and never blocks the command you ran.
-# Failures are silent. The reason is written to push_error.log.
+# On a login node this runs in the background and never blocks the
+# command you ran. Inside a Slurm job it runs in the foreground, with
+# a time limit, because Slurm stops background work when the job
+# ends. Failures are written to push_error.log. Inside a Slurm job a
+# failure also prints one line, which goes to the job log, such as
+# auto_cron.log.
 def push_async():
     folder = log_dir()
     if folder is None:
@@ -139,6 +164,8 @@ def push_async():
         return
     if not os.path.isdir(os.path.join(folder, ".git")):
         return
+
+    clear_stale_lock(folder)
 
     error_file = os.path.join(folder, "push_error.log")
 
@@ -161,18 +188,41 @@ def push_async():
     child_env["GIT_ASKPASS"] = "echo"
     child_env["SSH_ASKPASS"] = "echo"
 
+    in_slurm_job = "SLURM_JOB_ID" in os.environ
+
     try:
         with open(error_file, "w") as errors:
-            subprocess.Popen(command,
-                             shell=True,
-                             cwd=folder,
-                             stdin=subprocess.DEVNULL,
-                             stdout=errors,
-                             stderr=errors,
-                             env=child_env)
+            # A new session lets a slow push be stopped as one group
+            process = subprocess.Popen(command,
+                                       shell=True,
+                                       cwd=folder,
+                                       stdin=subprocess.DEVNULL,
+                                       stdout=errors,
+                                       stderr=errors,
+                                       env=child_env,
+                                       start_new_session=True)
     except OSError:
         # Nothing to do. The log is already written on disk.
-        pass
+        return
+
+    if not in_slurm_job:
+        return
+
+    # Inside a Slurm job: wait for the push before the job ends
+    try:
+        code = process.wait(timeout=config.ACTIVITY_PUSH_WAIT_SECONDS)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except OSError:
+            pass
+        print("Activity log: push stopped after "
+              + str(config.ACTIVITY_PUSH_WAIT_SECONDS)
+              + " s. It is retried on the next command.")
+        return
+
+    if code != 0:
+        print("Activity log: push failed. See " + error_file)
 
 
 # Add one entry to this machine's log, then rebuild MASTER.md and
