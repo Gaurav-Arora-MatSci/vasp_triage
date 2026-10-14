@@ -61,6 +61,9 @@ words into one `vtriage schedule` command and shows the plan.
 | `vclaude "run all jobs in this folder and email me when done"` | `vtriage schedule` (every 5 hours, batch and limit from local_settings.py) |
 | `vclaude "submit only the C11 folders, check every hour"` | `vtriage schedule --every 1h --path "C11/*"` |
 | `vclaude "run C11 folders 2 to 4 and all of C44, check every 2 hours"` | `vtriage schedule --every 2h --path "C11/{2..4}" "C44/*"` |
+| `vclaude "run jobs in this folder with batch size of 20 and checking back again after 3 hours until every job has reached required accuracy"` | `vtriage schedule --every 3h --batch 20 --agent auto` |
+| `vclaude "run all jobs, check every hour, show me the agent plan before it acts"` | `vtriage schedule --every 1h --agent ask` |
+| `vclaude "run all jobs every 2 hours, only submit"` | `vtriage schedule --every 2h --agent off` |
 | `vclaude "run everything, check every 30 minutes, keep at most 10 of my jobs queued"` | `vtriage schedule --every 30m --queue-limit 10` |
 | `vclaude "run all jobs, check every 90 minutes"` | nothing; says 90 minutes cannot be a cron interval and offers 1h or 2h |
 | `vclaude "stop the automatic run in this folder"` | nothing; prints `vtriage unschedule` for you to run |
@@ -68,7 +71,9 @@ words into one `vtriage schedule` command and shows the plan.
 
 The first row was recorded on Perlmutter. The other rows show what
 the CLAUDE.md rules tell Claude to do; check the plan it prints
-before you confirm.
+before you confirm. If the plan shows a default interval or agent
+mode you did not ask for, do not confirm. Ask again with the values
+stated, or run vtriage schedule by hand.
 
 Rules for vclaude_yes:
 
@@ -210,7 +215,7 @@ ionic step on purpose. See 04_edit_inputs.md.
 The same three commands work on their own:
 
 ```
-vtriage schedule --every 20m --batch 10 --path "C11/*"
+vtriage schedule --every 20m --batch 10 --path "C11/*" --agent auto
 vtriage confirm
 vtriage unschedule
 ```
@@ -260,9 +265,11 @@ more.
   treats % as a line break.
 - vclaude can only make plans. Only vclaude_yes can confirm, and
   neither can run unschedule, edit, submit, or auto.
-- With the decision agent off, the auto agent submits only not submitted
-  folders. Crashed and unconverged folders are listed in AUTO_DONE,
-  never resubmitted. See 09_decision_agent.md for the agent.
+- The decision agent mode is set per campaign with --agent off, ask,
+  or auto. Without --agent, AGENT_MODE in local_settings.py is used;
+  keep it off. With the agent off, the auto agent submits only not
+  submitted folders, and crashed and unconverged folders are listed
+  in AUTO_DONE. See 09_decision_agent.md.
 
 ## 7. Files written in the folder
 
@@ -272,7 +279,7 @@ more.
 | scrontab_backup_DATE.txt | confirm, unschedule, the finish | the table before each change |
 | auto_cron.log | every scheduled cycle | one summary line per cycle |
 | AUTO_DONE | the finish | counts, folders that need a look, email and removal lines |
-| agent_state.json, agent_plan.json, agent_summary.txt | the decision agent, when AGENT_MODE is on | see 09_decision_agent.md |
+| agent_state.json, agent_plan.json, agent_summary.txt | the decision agent, when the agent is ask or auto | see 09_decision_agent.md |
 
 ## 8. Problems
 

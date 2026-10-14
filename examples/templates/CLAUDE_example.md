@@ -61,3 +61,26 @@ vtriage unschedule in that folder.
 If schedule fails because scrontab is missing or disabled, say that
 scheduling works only on Perlmutter, and give the hand command
 vtriage auto --root FOLDER instead.
+
+## Mapping plain requests to vtriage schedule
+
+When the user asks to run, submit, or schedule jobs, use vtriage schedule
+and always pass every option the user mentions. Never fall back to a
+default when the user gave a value.
+
+- batch size N, N jobs at a time        -> --batch N
+- every X, check back after X, each X   -> --every X
+  (X in minutes 5 to 60, or whole hours, for example 20m, 1h, 3h)
+- queue limit N                          -> --queue-limit N
+- only some folders                      -> --path PATTERN (quote it)
+
+Decision agent:
+- until converged, until required accuracy, fix or restart unconverged
+  jobs, let the agent decide and act     -> --agent auto
+- ask me first, show me the plan         -> --agent ask
+- only submit, no agent                  -> --agent off
+- If the request does not say, ask which agent mode to use.
+
+After running schedule, show the plan and state the interval, batch,
+queue limit, paths, and agent mode exactly as printed. If any of them
+differs from the request, say so and do not tell the user to confirm.
