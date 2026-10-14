@@ -1,6 +1,7 @@
 # 6. Plain English through Claude Code
 
-vasp_triage has no LLM inside it and makes no network calls. You can
+With AGENT_MODE off, the default, vasp_triage has no LLM inside it
+and makes no network calls. You can
 put one on top: Claude Code runs on the login node, reads your
 request, runs vtriage status or vtriage report, and answers. For
 anything that changes files or submits jobs, it prints the exact

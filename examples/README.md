@@ -14,6 +14,7 @@ the file you need.
 | [06_llm_vclaude.md](06_llm_vclaude.md) | ask in plain English through Claude Code |
 | [07_troubleshooting.md](07_troubleshooting.md) | every problem met so far and its fix |
 | [08_schedule_plain_english.md](08_schedule_plain_english.md) | start a whole campaign with one sentence, NERSC Perlmutter only |
+| [09_decision_agent.md](09_decision_agent.md) | let the agent continue unconverged runs, with limits, NERSC Perlmutter |
 
 Ready to copy files are in [templates](templates):
 

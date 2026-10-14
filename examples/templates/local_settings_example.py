@@ -55,3 +55,32 @@ MACHINE_NAME = ""
 
 # Push the log folder to its remote after each command.
 ACTIVITY_LOG_PUSH = False
+
+# ---------------------------------------------------------------
+# Decision agent (decide.py), optional, NERSC Perlmutter
+# ---------------------------------------------------------------
+# off: nothing. ask: plan only, apply with vtriage approve.
+# auto: allowed actions are applied and submitted at once.
+# This applies to every campaign started without --agent. Keep it
+# off and use vtriage schedule --agent ask for one campaign.
+AGENT_MODE = "off"
+
+# CONTCAR restarts per folder (2 means 3 runs in all), NELM reruns
+# per folder (1 means 2 runs in all), largest NELM
+AGENT_MAX_IONIC_RESTARTS = 2
+AGENT_MAX_SCF_RERUNS = 1
+AGENT_MAX_NELM = 150
+
+# Most money per LLM call and per campaign, in USD. A call for 10
+# folders costs about 0.07 USD.
+AGENT_COST_PER_PASS = 0.50
+AGENT_COST_CAMPAIGN = 1.50
+
+# Energy rise allowed after a restart, in eV per atom, and sbatch
+# refusals allowed before a folder waits for you
+AGENT_ENERGY_RISE_PER_ATOM = 0.001
+AGENT_SUBMIT_TRIES = 3
+
+# Full path to claude, since scrontab jobs do not read ~/.bashrc.
+# Find it with: which claude
+AGENT_CLAUDE_COMMAND = "/global/homes/u/user/.local/bin/claude"

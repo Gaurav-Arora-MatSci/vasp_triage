@@ -260,8 +260,9 @@ more.
   treats % as a line break.
 - vclaude can only make plans. Only vclaude_yes can confirm, and
   neither can run unschedule, edit, submit, or auto.
-- The auto agent still submits only not submitted folders. Crashed
-  and unconverged folders are listed in AUTO_DONE, never resubmitted.
+- With the decision agent off, the auto agent submits only not submitted
+  folders. Crashed and unconverged folders are listed in AUTO_DONE,
+  never resubmitted. See 09_decision_agent.md for the agent.
 
 ## 7. Files written in the folder
 
@@ -271,6 +272,7 @@ more.
 | scrontab_backup_DATE.txt | confirm, unschedule, the finish | the table before each change |
 | auto_cron.log | every scheduled cycle | one summary line per cycle |
 | AUTO_DONE | the finish | counts, folders that need a look, email and removal lines |
+| agent_state.json, agent_plan.json, agent_summary.txt | the decision agent, when AGENT_MODE is on | see 09_decision_agent.md |
 
 ## 8. Problems
 

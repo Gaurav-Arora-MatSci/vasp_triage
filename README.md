@@ -28,7 +28,8 @@ export PATH=$PWD/vasp_triage:$PATH
 ```
 
 Add the export line to your `~/.bashrc` to keep it. No pip, no conda,
-no database, no network. Python 3.5 or newer, and SLURM.
+no database, no network. Python 3.5 or newer, and SLURM. The optional
+decision agent also needs Claude Code on the login node.
 
 ### Per machine settings
 
@@ -183,6 +184,7 @@ English use through Claude Code.
 | `vtriage schedule` | show the scrontab plan for the auto agent, NERSC only |
 | `vtriage confirm` | install that plan and run the first cycle |
 | `vtriage unschedule` | take the entry out of scrontab |
+| `vtriage approve` | show the decision agent's plan and apply what you approve |
 | `vtriage menu` | all of the above, numbered |
 
 Pick folders by status, by group, or from a list file:
@@ -242,10 +244,11 @@ scrontab, and it works through a whole campaign on its own:
    folder that needs a look, and sends one email.
 4. Every later cycle sees `AUTO_DONE` and exits at once.
 
-It never resubmits a crashed or unconverged folder. Those are listed
-in `AUTO_DONE` for you to fix. This is the one place a submit runs
-without a typed yes, so `submit --yes` is refused for any status
-other than `not submitted`.
+By default it never resubmits a crashed or unconverged folder. Those
+are listed in `AUTO_DONE` for you to fix. `submit --yes` is refused
+for any status other than `not submitted`. The optional decision
+agent, below, is the only other way a job is submitted without a
+typed yes, and only for three narrow cases.
 
 The email comes from a one minute Slurm job with `--mail-type=END`,
 because many clusters have no working `mail` command. Its job name
@@ -264,7 +267,10 @@ AUTO_EMAIL_SBATCH_OPTIONS = ["-A", "m0000", "-q", "shared", "-C", "cpu",
 
 Jobs whose name starts with `vtriage_` are helpers and are not
 counted against the queue limit. Name the scheduled job
-`vtriage_auto`. A lock file stops two cycles from submitting the same
+`vtriage_auto`, and give each campaign its own name, such as
+`vtriage_auto_C11`. NERSC gives scrontab jobs a singleton dependency,
+so two entries with the same name block each other. `vtriage
+schedule` names them this way for you. A lock file stops two cycles from submitting the same
 folders when one runs long. A log entry is written only when a cycle
 submits or finishes.
 
@@ -308,6 +314,67 @@ vclaude_yes
 ```
 
 See [examples/08_schedule_plain_english.md](examples/08_schedule_plain_english.md).
+
+## Continue unconverged runs: the decision agent, optional
+
+Off by default. Turn it on for one campaign with `--agent`, and each
+auto cycle of that campaign first looks at the folders that finished
+without converging:
+
+```bash
+vtriage schedule --every 2h --agent ask
+vtriage confirm
+```
+
+
+| Case | What happens |
+|---|---|
+| ionic not converged, still improving | CONTCAR to POSCAR, resubmit |
+| walltime hit in a relaxation | CONTCAR to POSCAR, resubmit |
+| SCF not converged, dE still falling | raise NELM, rerun once |
+| crashed after reaching accuracy | treated as done |
+| CONTCAR empty, missing, or cut short | skipped, listed for you |
+| MD or finite difference run (IBRION not 1, 2, or 3) | waits for you, never restarted |
+| no slurm file | waits for you |
+| anything else | waits for you |
+
+Whether a run is still improving is judged by Claude, called through
+Claude Code with every tool removed. vasp_triage reads the energy,
+force, and dE trends itself and puts them in the prompt. Claude
+answers restart, rerun, or wait for each folder, and the code checks
+every answer against the rules above before anything is written.
+Claude never reads or writes a file.
+
+`AGENT_MODE` in `local_settings.py` is the mode for campaigns started
+without `--agent`. It applies to every such campaign on the machine,
+so keep it `off` and use `--agent` per campaign. Limits, all in
+`local_settings.py`:
+
+```python
+AGENT_MODE = "off"              # off, ask, or auto, default for all
+AGENT_MAX_IONIC_RESTARTS = 2    # restarts per folder, so 3 runs in all
+AGENT_MAX_SCF_RERUNS = 1        # NELM reruns per folder, so 2 runs in all
+AGENT_MAX_NELM = 150
+AGENT_COST_PER_PASS = 0.50      # USD, ceiling for one LLM call
+AGENT_COST_CAMPAIGN = 1.50      # USD, then folders wait for you
+AGENT_ENERGY_RISE_PER_ATOM = 0.001  # eV, allowed rise after a restart
+AGENT_SUBMIT_TRIES = 3          # sbatch refusals before it waits
+AGENT_CLAUDE_COMMAND = "/full/path/to/claude"
+```
+
+A restart whose energy rose by more than 1 meV per atom stops that
+folder. A folder still not converged after the last allowed run is
+listed as not converged after 3 runs, and waits for you. The count
+starts again when you resubmit a folder yourself. If sbatch refuses
+a job, the files are put back and the submit is tried again in the
+next cycle, at most 3 times, with the reason in the report. In `ask`
+mode the agent writes `agent_plan.json` and submits nothing until
+you run `vtriage approve`. In `auto` mode it acts at once. Each cycle
+that decides something writes `agent_summary.txt`, adds it to the
+activity log, and sends a Slurm mail whose subject carries the
+counts, such as `vtriage_agent_W10_3acted_2you`.
+
+See [examples/09_decision_agent.md](examples/09_decision_agent.md).
 
 ## Status rules
 
@@ -453,15 +520,16 @@ vasp_triage starts from the file system instead. Any directory with
 an INCAR is a calculation, whether it was made by a bash loop, by
 VASPKIT, by a colleague, or by an earlier version of your own
 pipeline. It installs nothing, needs no network, and never acts
-without your yes.
+without your yes, unless you turn on the decision agent.
 
 The two mix perfectly well: custodian fixing runs while they happen,
 vasp_triage recording and triaging what came out.
 
 ## Plain English through an LLM, optional
 
-vasp_triage makes no network calls and has no LLM inside it. On a
-cluster that can reach the Anthropic API, Claude Code can sit on top:
+With `AGENT_MODE` off, the default, vasp_triage makes no network
+calls and has no LLM inside it. On a cluster that can reach the
+Anthropic API, Claude Code can sit on top:
 
 ```
 $ vclaude "submit only C11 folders 2 to 4 that were not submitted"
@@ -500,6 +568,8 @@ edit.py       change INCAR and KPOINTS
 resubmit.py   sbatch with checks and limits
 auto.py       one cycle of the scheduled auto agent
 schedule.py   puts the auto agent on scrontab and takes it off, NERSC only
+evidence.py   energy, force, and dE trends for the decision agent
+decide.py     the decision agent: rules, LLM call, plan, approve
 agent.py      entry point, command log
 menu.py       numbered menu
 activity.py   the one place log across machines, optional

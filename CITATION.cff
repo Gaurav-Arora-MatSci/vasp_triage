@@ -1,4 +1,4 @@
-cff-version: 1.2.1
+cff-version: 1.2.0
 title: "vasp_triage"
 message: "If you use this software, please cite it as below."
 type: software
@@ -11,5 +11,5 @@ identifiers:
     value: 10.5281/zenodo.22944313
 repository-code: "https://github.com/Gaurav-Arora-MatSci/vasp_triage"
 license: MIT
-version: 1.2.1
-date-released: "2026-10-12"
+version: 1.3.0
+date-released: "2026-10-13"

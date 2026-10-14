@@ -14,6 +14,8 @@
 #             schedule.py confirm
 #   unschedule  take the entry out of scrontab, calls
 #             schedule.py remove
+#   approve   show the decision agent's plan and apply what you
+#             approve, calls decide.py approve
 #
 # Every command is written to agent_log.txt in the root folder,
 # together with the output it printed.
@@ -278,6 +280,7 @@ def print_usage():
     print("  vtriage schedule [options]")
     print("  vtriage confirm [--root root]")
     print("  vtriage unschedule [--root root]")
+    print("  vtriage approve [--root root]")
     print("")
     print("Without a root, the folder you are standing in is used.")
     print("Options for edit and submit are the same as edit.py"
@@ -364,6 +367,17 @@ if __name__ == "__main__":
 
         code, output = run_script("schedule.py",
                                   [actions[command]] + rest)
+
+        if code == 0:
+            result = "finished"
+        else:
+            result = "failed, exit code " + str(code)
+
+        write_log(root, command_text, result, output)
+        sys.exit(code)
+
+    elif command == "approve":
+        code, output = run_script("decide.py", ["approve"] + rest)
 
         if code == 0:
             result = "finished"

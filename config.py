@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------
 # Package information
 # ---------------------------------------------------------------
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 AUTHOR = "Gaurav Arora, Villanova University"
 
 # ---------------------------------------------------------------
@@ -300,6 +300,66 @@ SCHEDULE_PLAN_MINUTES = 60
 # Files the schedule writes in the root folder
 SCHEDULE_PLAN_NAME = "schedule_plan.json"
 SCHEDULE_LOG_NAME = "auto_cron.log"
+
+
+# ---------------------------------------------------------------
+# Decision agent (decide.py), runs inside each auto cycle
+# ---------------------------------------------------------------
+# off   the agent does nothing
+# ask   actions go into agent_plan.json and wait for vtriage approve
+# auto  allowed actions are applied and submitted at once
+# This is the mode for every campaign started without --agent.
+# Keep it off and choose the mode per campaign with --agent.
+AGENT_MODE = "off"
+
+# CONTCAR restarts per folder, for ionic not converged and walltime.
+# 2 restarts means at most 3 runs in total, including the first.
+AGENT_MAX_IONIC_RESTARTS = 2
+
+# NELM reruns per folder for SCF not converged.
+# 1 rerun means at most 2 runs in total, including the first.
+AGENT_MAX_SCF_RERUNS = 1
+
+# Largest NELM the agent may set
+AGENT_MAX_NELM = 150
+
+# Most money one LLM call may spend, in USD. This is a ceiling, not
+# the price: a call for 10 folders cost about 0.07 USD in tests.
+AGENT_COST_PER_PASS = 0.50
+
+# Most money the LLM may spend on one campaign, in USD. When it is
+# reached, folders that need judgment wait for you instead.
+AGENT_COST_CAMPAIGN = 1.50
+
+# Most folders judged in one LLM call. The rest wait for the next
+# cycle.
+AGENT_MAX_FOLDERS_PER_CALL = 10
+
+# Energy rise allowed after a CONTCAR restart, in eV per atom. A
+# restarted cell relaxation can end slightly higher, because the
+# plane wave basis is set up again. A larger rise stops the folder.
+AGENT_ENERGY_RISE_PER_ATOM = 0.001
+
+# Times sbatch may refuse one agent submit, for example at a queue
+# limit, before the folder waits for you. The files are put back after
+# each refusal and the submit is tried again in the next cycle.
+AGENT_SUBMIT_TRIES = 3
+
+# Latest ionic or electronic steps shown to the LLM per folder
+AGENT_EVIDENCE_STEPS = 30
+
+# LLM model and the claude program. scrontab jobs do not read
+# ~/.bashrc, so give the full path if claude is not found.
+AGENT_MODEL = "sonnet"
+AGENT_CLAUDE_COMMAND = "claude"
+
+# Longest wait for one LLM answer, in seconds
+AGENT_CALL_SECONDS = 240
+
+# Files the agent writes in the root folder
+AGENT_STATE_NAME = "agent_state.json"
+AGENT_PLAN_NAME = "agent_plan.json"
+AGENT_SUMMARY_NAME = "agent_summary.txt"
 
 
 

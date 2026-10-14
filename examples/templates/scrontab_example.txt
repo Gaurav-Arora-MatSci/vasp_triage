@@ -3,8 +3,11 @@
 # Paste ONE block, replace YOUR_ACCOUNT and the paths, save, and check
 # with:  scrontab -l
 # Times are UTC. Use full paths: scrontab does not read ~/.bashrc.
-# Keep -J vtriage_auto so the helper job is not counted in the queue
-# limit. Remove the block with scrontab -e when AUTO_DONE is written.
+# Keep -J starting with vtriage_auto so the helper job is not counted
+# in the queue limit. Give each campaign its own -J name, such as
+# vtriage_auto_C11: NERSC gives scrontab jobs a singleton dependency,
+# so two entries with the same name block each other.
+# Remove the block with scrontab -e when AUTO_DONE is written.
 
 # ----- Test: every 5 minutes, small batches -----
 #SCRON -q cron

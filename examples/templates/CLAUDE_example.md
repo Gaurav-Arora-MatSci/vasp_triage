@@ -5,8 +5,8 @@ Do not read OUTCAR, OSZICAR, or slurm files yourself for status.
 For details on a folder, run vtriage report and read report.md.
 Keep summaries short: counts by status, then the Needs a look list.
 
-Never run vtriage edit, submit, history, auto, or unschedule
-yourself. Never run scrontab yourself.
+Never run vtriage edit, submit, history, auto, unschedule, or
+approve yourself. Never run scrontab yourself.
 Run vtriage confirm only when the user's latest message is a yes to
 a schedule plan you showed in your previous answer.
 Print the exact command for the user to run instead.

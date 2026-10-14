@@ -21,6 +21,7 @@
 
 import argparse
 import datetime
+import hashlib
 import json
 import os
 import shlex
@@ -56,6 +57,10 @@ def read_arguments():
     parser.add_argument("--queue-limit", type=int, default=None,
                         help="my jobs allowed in the queue, default"
                              " AUTO_QUEUE_LIMIT")
+    parser.add_argument("--agent", choices=["off", "ask", "auto"],
+                        default=None,
+                        help="decision agent for this campaign,"
+                             " default AGENT_MODE")
 
     args = parser.parse_args()
 
@@ -156,6 +161,25 @@ def marker_line(root):
     return "# vtriage schedule for " + root
 
 
+# Return the scrontab job name for this root, such as
+# vtriage_auto_vt_test_3f2a1c. Each campaign needs its own name: NERSC
+# gives scrontab jobs a singleton dependency, so two entries with the
+# same name block each other, and one never runs. The folder name
+# makes it readable, and six letters of a hash of the full path keep
+# two folders with the same name apart. It starts with
+# AUTO_HELPER_PREFIX, so it is not counted against the queue limit.
+def job_name(root):
+    base = ""
+    for letter in os.path.basename(root):
+        if letter.isalnum() or letter in "_-":
+            base = base + letter
+        else:
+            base = base + "_"
+
+    digest = hashlib.md5(root.encode("utf-8")).hexdigest()[:6]
+    return config.AUTO_HELPER_PREFIX + "auto_" + base + "_" + digest
+
+
 # The text that identifies the cron line for this root.
 def command_text(root):
     return "auto --root " + shlex.quote(root)
@@ -252,6 +276,8 @@ def auto_options(root, args, patterns):
         options = options + ["--batch", str(args.batch)]
     if args.queue_limit is not None:
         options = options + ["--queue-limit", str(args.queue_limit)]
+    if args.agent is not None:
+        options = options + ["--agent", args.agent]
     for pattern in patterns:
         options.append("--path=" + pattern)
     return options
@@ -273,7 +299,7 @@ def make_block(root, cron, account, options):
     block.append("#SCRON -q " + config.SCHEDULE_QOS)
     block.append("#SCRON -A " + account)
     block.append("#SCRON -t " + config.SCHEDULE_TIME)
-    block.append("#SCRON -J " + config.AUTO_HELPER_PREFIX + "auto")
+    block.append("#SCRON -J " + job_name(root))
     block.append("#SCRON -o " + log_path)
     block.append("#SCRON --open-mode=append")
     block.append(cron + " " + " ".join(words))
@@ -356,6 +382,11 @@ def do_plan(root, args):
         print("  path patterns: none, every folder")
     else:
         print("  path patterns: " + " ".join(patterns))
+    if args.agent is not None:
+        print("  decision agent: " + args.agent)
+    else:
+        print("  decision agent: " + str(config.AGENT_MODE)
+              + ", from AGENT_MODE at each cycle")
     if config.AUTO_EMAIL == "":
         print("  email: none, AUTO_EMAIL is empty")
     else:

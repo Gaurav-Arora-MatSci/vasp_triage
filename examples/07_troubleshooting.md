@@ -101,6 +101,22 @@ The queue limit counts all your jobs from every project. Raise
 BeginTime.**
 Normal. scrontab keeps it queued until the next start time.
 
+**A second campaign's job stays pending with reason Dependency, and
+its auto_cron.log never appears.**
+NERSC gives scrontab jobs a singleton dependency: a job waits until
+every earlier job with the same name and user has ended. Two
+scrontab entries named vtriage_auto block each other, and one never
+runs. scontrol show job N shows Dependency=singleton(unfulfilled).
+Since v1.3.0, vtriage schedule names each entry
+vtriage_auto_FOLDER_HASH. For an older entry, run vtriage unschedule
+and vtriage schedule again, or change its -J line by hand with
+scrontab -e.
+
+**sbatch: error: QOSMaxSubmitJobPerUserLimit in the debug queue.**
+On Perlmutter CPU, debug allows 5 submitted jobs per user. The
+refused folders stay not submitted and go in the next cycle. Use
+--batch 5 or less for debug test trees.
+
 **Two cycles might submit the same folders.**
 They cannot. A lock file lets one cycle run at a time. Another auto
 run is active. Skipped. means the lock worked.

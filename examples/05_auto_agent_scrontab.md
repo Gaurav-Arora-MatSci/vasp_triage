@@ -2,7 +2,9 @@
 
 vtriage auto runs one cycle. Run on a schedule, it works through a
 campaign on its own and emails you when it is done. It needs no LLM
-and no API key.
+and no API key. The optional decision agent, which continues
+unconverged runs inside the same cycle, is in
+[09_decision_agent.md](09_decision_agent.md).
 
 ## What one cycle does
 

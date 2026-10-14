@@ -12,8 +12,10 @@
 ##   5. after the email, takes its own entry out of scrontab, if
 #      vtriage schedule put one there
 #
-# Only folders with status not submitted are ever submitted.
-# Crashed or unconverged folders are listed, never resubmitted.
+# Only folders with status not submitted are submitted here.
+# Crashed or unconverged folders are listed, never resubmitted, unless
+# the decision agent is on (AGENT_MODE ask or auto, see decide.py). It
+# runs first in each cycle and may continue unconverged folders.
 # A log entry is written only when the run submits or finishes, so a
 # run every few minutes does not fill agent_log.txt.
 #
@@ -31,6 +33,7 @@ import time
 import agent
 import classify
 import config
+import decide
 import edit
 import scan
 
@@ -52,6 +55,9 @@ def read_arguments():
                         default=config.AUTO_QUEUE_LIMIT,
                         help="my jobs allowed in the queue, 0 turns it"
                              " off")
+    parser.add_argument("--agent", choices=decide.MODES, default=None,
+                        help="decision agent for this campaign: off,"
+                             " ask, or auto; default AGENT_MODE")
 
     args = parser.parse_args()
 
@@ -213,12 +219,20 @@ def make_done_text(root, patterns, records):
             text = text + " | last SCF hit NELM"
         if len(record["missing"]) > 0:
             text = text + " | missing " + ", ".join(record["missing"])
+        agent_note = decide.note_for(root, record)
+        if agent_note is not None:
+            text = text + " | agent: " + agent_note
         look.append(text)
 
     lines.append("")
     lines.append("Folders that need a look: " + str(len(look)))
     for text in look:
         lines.append("  " + text)
+
+    agent_cost = decide.cost_line(root)
+    if agent_cost is not None:
+        lines.append("")
+        lines.append(agent_cost)
 
     converged = counts.get(config.STATUS_CONVERGED, 0)
     return "\n".join(lines) + "\n", converged, len(look)
@@ -320,6 +334,27 @@ def run_cycle(root, patterns, args):
                + ", in queue: " + str(queued))
     print(summary)
 
+    # Step 0: the decision agent continues finished folders that did
+    # not converge. It does nothing while its mode is off.
+    agent_busy = False
+    mode = decide.agent_mode(args.agent)
+    if mode != "off":
+        my_jobs = count_my_jobs()
+        if my_jobs is None:
+            print("squeue failed. Agent step skipped.")
+            return 1
+
+        free = None
+        if args.queue_limit > 0:
+            free = args.queue_limit - my_jobs
+            if free < 0:
+                free = 0
+
+        acted, agent_busy = decide.agent_step(root, records, free, mode)
+        if acted > 0:
+            # The new jobs are in the queue, so the campaign goes on
+            agent_busy = True
+
     # Step 1: fill the free slots with new jobs
     if waiting > 0:
         my_jobs = count_my_jobs()
@@ -348,6 +383,12 @@ def run_cycle(root, patterns, args):
     if queued > 0:
         print("All submitted. Waiting for " + str(queued)
               + " jobs to leave the queue.")
+        return 0
+
+    # The agent still has work: new jobs, a plan to approve, or
+    # folders put off to the next cycle
+    if agent_busy:
+        print("Agent work still open. Waiting.")
         return 0
 
     # Step 3: done
